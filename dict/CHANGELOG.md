@@ -2,6 +2,32 @@
 
 词库与 librime 补丁同仓、共用一个 tag —— 版本号只在本仓的 tag 上。
 
+## dict-2026.10.11
+
+清理底本为超高频虚词保留的文言读音行（纯数据，不涉引擎）。
+
+上游底本给 36 个超高频词保留了古读/旧读行（什么 shé me、还有 huán you、
+大家 dà gǔ、中中的 zhōng dì、颜色 yán shǎi、矛盾 máo shùn、说服 shuì fú、
+模样 mú yàng 等）。这些词的实际输入全走现代读音——essay 词频与引擎组词均
+产出正确结果，引擎实测 shenme/haiyou/dajia 一直正确；文言行是历史包袱，且
+与现代读音行并存、挤占同一批高频词的候选位。
+
+- **36 条文言/错音行删除**（`tools/pinyin_fixes.txt` 的 `del` 指令，同词的
+  现代读音行原样保留）：什么 she me、还有 huan you、大家 da gu、中的
+  zhong di、那种 nei zhong、它们 tuo men、颜色 yan shai、多了 duo liao、
+  咱们 za men、那时候/那边/那天/那位/那次 nei→na、矛盾 mao shun、罢了/
+  不了/得了 liǎo→le、模板 mu ban、给予 ji yu、没人 mo ren、没了 mo le、
+  完了/干了 liao→le、似的 shi de、活着 huo zhao、骑士 ji shi、概括 gai jie、
+  暴露 pu lu、说服 shui fu、模样/一模一样 mu→mo、关卡 guan qia、打着
+  da zhao、热血 re xie。
+- **合法读音变体一律保留**，只删「拼写确错 + 现代读音已并存」的行：
+  尴尬 jiān jiè、便宜 pián yi、穿着 zhuó 等底本另有的读法并非错音。
+- 词条 67176 → **67141**（−35，纯删除无新增）。
+
+甄别方法：以 Unihan kMandarin（现代通用读音）交叉核对多读音词，筛出
+「essay 高频 + 现代读音行并存 + 另一行与 kMandarin 不符」的候选共 48 条，
+再逐条查《现代汉语词典》人工判定。
+
 ## dict-2026.10.10
 
 简体拼音词库修订（纯数据，不涉引擎）。

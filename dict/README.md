@@ -8,14 +8,14 @@
 
 | 文件 | 说明 |
 |------|------|
-| `luna_pinyin.dict.yaml` | 词库本体。67176 条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、补单字缺读音）。同词多读音保留为多行。 |
+| `luna_pinyin.dict.yaml` | 词库本体。67141 条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、补单字缺读音）。同词多读音保留为多行。 |
 | `essay.txt` | 词频表，437873 条带权重词条（2026-10 升级到 rime-essay 官方最新版 442688 条，再全部转简体去重）。词库开了 `use_preset_vocabulary`，靠它加载词频 —— 缺了它候选会退化成按 Unicode 排序的单字（生僻字排在常用字前面），词组也出不来。 |
 | `opencc/` | 简繁与字形转换数据，供 schema 的 simplifier 用：`t2s_full.json`（简体输出主路径）、`t2hk.json` / `t2tw.json`（港/臺字形）。 |
 
 三个文件是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`，
 简体方案再挂 opencc 转换。改其中任何一个都要另两个配套。
 
-**主词库只放「组不出」的条目**。67176 条里 45428 条是单字、其余是成语与固定
+**主词库只放「组不出」的条目**。67141 条里 45428 条是单字、其余是成语与固定
 搭配；像「中国」「人工智能」这种能按单字读音组合出来的词**故意不在主词库里**
 ——引擎的 `ScriptEncoder` 会动态组词，词频由 essay 提供（43.7 万条里 91%
 不在主词库）。所以「某词不在 luna_pinyin.dict.yaml 里」并不等于打不出来，
@@ -141,6 +141,7 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 |---|---|---|
 | `dict-2026.10.09` | `v1.1.8-rime-stack` | 简繁数据闭包（`t2hk`/`t2tw` + `HK`/`TWVariants.ocd2`）与 `use_preset_vocabulary` 的词频依赖都从这次起 |
 | `dict-2026.10.10` | `v1.1.8-rime-stack` | 纯数据修订：`luna_pinyin.dict.yaml` 错音订正与单字补读音（`tools/pinyin_fixes.txt`），无新引擎依赖 |
+| `dict-2026.10.11` | `v1.1.8-rime-stack` | 纯数据修订：清理底本为超高频虚词保留的文言读音行（36 条 `del`），无新引擎依赖 |
 
 （`v1.1.9-rime-stack` 之后的引擎变更——上游 67 提交合并、PCRE 翻译层——属引擎侧，
 不改变词库的最低 stack 要求。）

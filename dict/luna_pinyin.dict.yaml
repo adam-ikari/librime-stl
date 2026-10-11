@@ -6745,7 +6745,6 @@ use_preset_vocabulary: true
 一树百获	yi shu bo huo
 一概抹杀	yi gai mo sha
 一模一样	yi mo yi yang
-一模一样	yi mu yi yang
 一死了之	yi si liao zhi
 一气呵成	yi qi he cheng
 一灭行	yi mie xing
@@ -7006,7 +7005,6 @@ use_preset_vocabulary: true
 不乾净	bu gan jing
 不乾性油	bu gan xing you
 不了	bu le
-不了	bu liao
 不了之局	bu liao zhi ju
 不了了	bu liao le
 不了了之	bu liao liao zhi
@@ -7373,7 +7371,6 @@ use_preset_vocabulary: true
 中源地震	zhong yuan di zhen
 中澣	zhong huan
 中的	zhong de
-中的	zhong di
 中秋快乐	zhong qiu kuai le
 中秘书	zhong mi shu
 中签率	zhong qian lv
@@ -8316,7 +8313,6 @@ use_preset_vocabulary: true
 什一	shi yi
 什一之利	shi yi zhi li
 什不闲	shi bu xian
-什么	she me
 什么	shen me
 什么东东	shen me dong dong
 什么东西	shen me dong xi
@@ -8860,7 +8856,6 @@ use_preset_vocabulary: true
 似漆如胶	si qi ru jiao
 似火	si huo
 似玉如花	si yu ru hua
-似的	shi de
 似的	si de
 似箭如梭	si jian ru suo
 似续	si xu
@@ -10133,7 +10128,6 @@ use_preset_vocabulary: true
 关东都督府	guan dong du du fu
 关云长	guan yun zhang
 关卡	guan ka
-关卡	guan qia
 关塞	guan sai
 关山迢递	guan shan tiao di
 关捩子	guan lie zi
@@ -12935,7 +12929,6 @@ use_preset_vocabulary: true
 咰	xun
 咱	za
 咱	zan
-咱们	za men
 咱们	zan men
 咱家	za jia
 咲	xiao
@@ -15365,7 +15358,6 @@ use_preset_vocabulary: true
 夙负盛名	su fu sheng ming
 多	duo
 多了	duo le
-多了	duo liao
 多藏厚亡	duo cang hou wang
 多行不义必自毙	duo xing bu yi bi zi bi
 多角化	duo jiao hua
@@ -15462,7 +15454,6 @@ use_preset_vocabulary: true
 大学院校	da xue yuan xiao
 大安地列斯群岛	da an di lie si qun dao
 大宛	da yuan
-大家	da gu
 大家	da jia
 大家乐	da jia le
 大家长	da jia zhang
@@ -16846,7 +16837,6 @@ use_preset_vocabulary: true
 它	ta
 它	tuo
 它们	ta men
-它们	tuo men
 它嚣	tuo xiao
 它山之石	ta shan zhi shi
 它山之石	tuo shan zhi shi
@@ -16944,7 +16934,6 @@ use_preset_vocabulary: true
 宋牼	song keng
 完	wan
 完了	wan le
-完了	wan liao
 宍	rou
 宍	ru
 宎	yao
@@ -18484,7 +18473,6 @@ use_preset_vocabulary: true
 干	han
 干么	gan ma
 干了	gan le
-干了	gan liao
 干什么	gan shen me
 干劲	gan jin
 干将莫邪	gan jiang mo ye
@@ -19272,7 +19260,6 @@ use_preset_vocabulary: true
 得下来	dei xia lai
 得不偿失	de bu chang shi
 得了	de le
-得了	de liao
 得似	de si
 得便宜处失便宜	de pian yi chu shi pian yi
 得便宜是落便宜	de pian yi shi luo pian yi
@@ -20860,7 +20847,6 @@ use_preset_vocabulary: true
 打点行装	da dian xing zhuang
 打爻	da yao
 打的	da di
-打着	da zhao
 打着	da zhe
 打破头屑	da po tou xie
 打窠地	da ke di
@@ -23944,7 +23930,6 @@ use_preset_vocabulary: true
 暴行	pu xing
 暴雷也似	bao lei ye si
 暴露	bao lu
-暴露	pu lu
 暴露出	bao lu chu
 暴露狂	pu lu kuang
 暴面	pu mian
@@ -25937,9 +25922,7 @@ use_preset_vocabulary: true
 模塑成形	mo su cheng xing
 模子	mu zi
 模板	mo ban
-模板	mu ban
 模样	mo yang
-模样	mu yang
 樥	peng
 樦	zhu
 樨	xi
@@ -27142,14 +27125,12 @@ use_preset_vocabulary: true
 没乾净	mei gan jing
 没乾没净	mei gan mei jing
 没了	mei le
-没了	mo le
 没了当	mei liao dang
 没了期	mei liao qi
 没了结处	mei liao jie chu
 没了落	mei liao luo
 没事哏	mei shi hen
 没人	mei ren
-没人	mo ren
 没什么	mei shen me
 没什么要紧	mei shen me yao jin
 没入	mo ru
@@ -27644,7 +27625,6 @@ use_preset_vocabulary: true
 活似真的	huo si zhen de
 活地狱	huo di yu
 活塞	huo sai
-活着	huo zhao
 活着	huo zhe
 活血	huo xie
 活血	huo xue
@@ -29394,7 +29374,6 @@ use_preset_vocabulary: true
 热火朝天	re huo chao tian
 热爪哇	re zhao wa
 热爪哇	re zhua wa
-热血	re xie
 热血	re xue
 热血沸腾	re xue fei teng
 热觉	re jue
@@ -32806,7 +32785,6 @@ use_preset_vocabulary: true
 矙	kan
 矛	mao
 矛盾	mao dun
-矛盾	mao shun
 矜	guan
 矜	jin
 矜寡	guan gua
@@ -35519,7 +35497,6 @@ use_preset_vocabulary: true
 给与	gei yu
 给与	ji yu
 给予	gei yu
-给予	ji yu
 给事中	ji shi zhong
 给付	gei fu
 给付	ji fu
@@ -35892,7 +35869,6 @@ use_preset_vocabulary: true
 罢	ba
 罢	pi
 罢了	ba le
-罢了	ba liao
 罢于奔命	pi yu ben ming
 罢劳	pi lao
 罢弊	pi bi
@@ -35984,7 +35960,6 @@ use_preset_vocabulary: true
 美人胚子	mei ren pei zi
 美国联邦调查局	mei guo lian bang diao cha ju
 美的	mei de
-美的	mei di
 美耐皿	mei nai min
 美馔佳肴	mei zhuan jia yao
 羏	yang
@@ -41953,7 +41928,6 @@ use_preset_vocabulary: true
 说客	shui ke
 说得着	shuo de zhao
 说明什么	shuo ming shen me
-说服	shui fu
 说服	shuo fu
 说服力	shui fu li
 说来话长	shuo lai hua chang
@@ -44098,7 +44072,6 @@ use_preset_vocabulary: true
 还政	huan zheng
 还政于民	huan zheng yu min
 还有	hai you
-还有	huan you
 还有什么	hai you shen me
 还有谁	hai you shui
 还本	huan ben
@@ -44595,27 +44568,21 @@ use_preset_vocabulary: true
 那个地方	na ge di fang
 那么着	na me zhao
 那位	na wei
-那位	nei wei
 那借	nuo jie
 那动	nuo dong
 那台	na tai
 那台	nei tai
 那天	na tian
-那天	nei tian
 那家	na jia
 那家	nei jia
 那张	na zhang
 那张	nei zhang
 那时候	na shi hou
-那时候	nei shi hou
 那次	na ci
-那次	nei ci
 那步	nuo bu
 那种	na zhong
-那种	nei zhong
 那种感觉	na zhong gan jue
 那边	na bian
-那边	nei bian
 邤	xin
 邥	shen
 邦	bang
@@ -48335,7 +48302,6 @@ use_preset_vocabulary: true
 颜	yan
 颜杲卿	yan gao qing
 颜色	yan se
-颜色	yan shai
 颜面角	yan mian jiao
 额	e
 额角	e jiao
@@ -48994,7 +48960,6 @@ use_preset_vocabulary: true
 骑	qi
 骑从	ji cong
 骑从	ji zong
-骑士	ji shi
 骑士	qi shi
 骑自行车	qi zi xing che
 骑行	qi xing

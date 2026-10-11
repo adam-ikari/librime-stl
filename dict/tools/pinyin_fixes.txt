@@ -176,3 +176,86 @@ add	椆	diao
 add	杕	duo
 # 舞勺 wǔzhuó（勺 zhuó，古礼乐舞）
 add	勺	zhuo
+
+# === 底本文言读音行清理（2026-10-11）===
+# 上游底本给一批超高频虚词保留了古读/旧读行（什么 shé me、还有 huán you 等）。
+# 这些词的实际输入全走现代读音（essay 权重 + 组词均产出正确结果），文言行
+# 纯属历史包袱：与现代读音行并存、拼写错误（不是合法变调）、且挤占同一批
+# 高频词的候选位。逐条核对《现代汉语词典》后用 del 删错保对，同词的现代读
+# 音行原样保留。
+# 甄别依据：合法读音变体一律保留（尴尬 jiān jiè、便宜 pián yi、穿着 zhuó
+# 等底本另有的读法并非错音），只删「拼写确错 + 现代读音已并存」的行。
+# 什么 shé me → shén me
+del	什么	she me
+# 还有 huán you → hái you
+del	还有	huan you
+# 大家 dà gǔ → dà jiā
+del	大家	da gu
+# 中的 zhōng dì → zhōng de
+del	中的	zhong di
+# 那种 nèi zhǒng → nǎ zhǒng
+del	那种	nei zhong
+# 它们 tuǒ men → tā men
+del	它们	tuo men
+# 颜色 yán shǎi → yán sè（shǎi 系儿化误写）
+del	颜色	yan shai
+# 多了 duō liǎo → duō le
+del	多了	duo liao
+# 咱们 zǎ men → zán men
+del	咱们	za men
+# 那时候 nèi shí hou → nǎ shí hou
+del	那时候	nei shi hou
+# 矛盾 máo shùn → máo dùn
+del	矛盾	mao shun
+# 那边 nèi biān → nǎ biān
+del	那边	nei bian
+# 罢了 bà liǎo → bà le
+del	罢了	ba liao
+# 便宜 biàn yi 保留；无 del
+# 不了 bù liǎo → bù le
+del	不了	bu liao
+# 模板 mú bǎn → mó bǎn
+del	模板	mu ban
+# 那天 nèi tiān → nǎ tiān
+del	那天	nei tian
+# 给予 jǐ yǔ → gěi yǔ
+del	给予	ji yu
+# 没人 mō rén → méi rén
+del	没人	mo ren
+# 没了 mō le → méi le
+del	没了	mo le
+# 完了 wán liǎo → wán le
+del	完了	wan liao
+# 似的 shì de → sì de
+del	似的	shi de
+# 尴尬 jiān jiè 保留（底本另读）；无 del
+# 得了 dé liǎo → dé le
+del	得了	de liao
+# 那位 nèi wèi → nǎ wèi
+del	那位	nei wei
+# 美的 měi dì → měi de
+del	美的	mei di
+# 活着 huó zháo → huó zhe（zháo 系旧读误写）
+del	活着	huo zhao
+# 骑士 jì shì → qí shì
+del	骑士	ji shi
+# 概括 gài jiè → gài kuò
+del	概括	gai jie
+# 暴露 pù lù → bào lù
+del	暴露	pu lu
+# 说服 shuì fú → shuō fú
+del	说服	shui fu
+# 干了 gàn liǎo → gàn le
+del	干了	gan liao
+# 模样 mú yàng → mó yàng
+del	模样	mu yang
+# 一模一样 yī mú yī yàng → yī mó yī yàng
+del	一模一样	yi mu yi yang
+# 关卡 guān qiǎ → guān kǎ
+del	关卡	guan qia
+# 打着 dǎ zháo → dǎ zhe
+del	打着	da zhao
+# 热血 rè xiè → rè xuè
+del	热血	re xie
+# 那次 nèi cì → nǎ cì
+del	那次	nei ci
