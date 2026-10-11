@@ -79,6 +79,7 @@ git merge upstream/master        # dict/ 与上游无交集，正常不会冲突
 
 ```sh
 make -C tools check      # 重新生成，并与本目录已提交内容逐字节比对
+make -C tools smoke      # 部署真实引擎，断言词库可用（需先构建引擎）
 make -C tools package    # 打成 term-ime-dict-<VERSION>.tar.gz
 ```
 
@@ -98,6 +99,14 @@ make -C tools package    # 打成 term-ime-dict-<VERSION>.tar.gz
   一律写进这张表，由 `convert_dict.py` 每次生成时套上，`make check` 仍逐字节
   复现。手改 `dict/luna_pinyin.dict.yaml` 等于放弃复现门。表里三个指令：
   `fix` 整词替换读音、`del` 删一条错读音、`add` 给单字补读音。
+
+四条契约管「怎么生成」，另有一道门管「生成的东西引擎读不读得动」：
+`make -C tools smoke` 把本目录按安装布局（引擎数据取 `data/minimal/`，词库与
+essay 取本目录覆盖同名 minimal 文件）装进临时部署，用 `rime_console` 真编译
+一遍，断言两件事 —— 部署日志零错误行（模式编译失败、词条被表构建器拒绝这类
+问题只在真部署里现形，逐字节比对看不见），以及几条探针能提交出预期文字（含
+一个多音字的两个读音）。check 证明「与已提交内容一致」，smoke 证明「引擎用
+得动」，两道门缺一不可。
 
 `tools/sources.lock` 钉住三个输入坐标。`luna_pinyin` 的底本不是上游某个 release，
 而是本仓 `64eda4c7` 里那份繁体快照（上游此后加了读音权重、补了日文国字与注音

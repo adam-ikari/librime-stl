@@ -7,9 +7,12 @@
 #   make ocd2             重新生成 opencc 二进制字形表
 #   make all              以上三个产物
 #   make check            重新生成并与 dict/ 已提交内容逐字节比对
+#   make smoke            用真实引擎冒烟：把 dict/ 部署出来跑候选断言
 #   make package          打成发布 tarball
 #
-# check 是唯一的验收：diff 非空就是脚本错了，不许改数据去「对齐」。
+# check 是产物一致性的验收：diff 非空就是脚本错了，不许改数据去「对齐」。
+# smoke 是可用性的验收：check 全绿也可能引擎读不动这些数据（无调注音、
+# schema 模式编译失败、词条被表构建器拒绝），只有真部署一遍才算证明。
 
 TOOLS := $(CURDIR)
 DICT  := $(abspath $(TOOLS)/..)
@@ -31,7 +34,7 @@ PY ?= python3
 VERSION := $(shell cat $(DICT)/VERSION)
 NAME := term-ime-dict-$(VERSION)
 
-.PHONY: all check clean dict essay ocd2 package toolchain
+.PHONY: all check clean dict essay ocd2 package smoke toolchain
 
 all: $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/opencc
 
@@ -81,6 +84,12 @@ check: all
 	  echo "DIFF opencc/ -- see $(BUILD)/opencc.diff"; fail=1; \
 	fi; \
 	exit $$fail
+
+# Loads dict/ into a real deployment and asserts the engine can use it. Needs
+# the engine binary; default path is the in-repo build, override with
+# RIME_CONSOLE=/path/to/rime_console.
+smoke:
+	$(PY) smoke.py --rime-console $${RIME_CONSOLE:-$(abspath $(TOOLS)/../../build/bin/rime_console)}
 
 package: all
 	rm -rf $(PKG)

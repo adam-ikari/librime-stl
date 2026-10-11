@@ -16,6 +16,9 @@ deps/opencc/build/
 plugins/*/
 env.bat
 node_modules/
+# opencc CLI drops an installation marker into whatever directory the dict
+# toolchain runs in.
+installation.yaml
 # rime_test writes these byproducts into its working directory; never commit.
 /user.yaml
 /user_db_test.txt
