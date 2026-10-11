@@ -5,6 +5,11 @@
 // 2012-01-01 GONG Chen <chen.sst@gmail.com>
 //
 #include <rime/common.h>
+// term-ime: schema-supplied recognizer patterns are PCRE upstream; compile
+// them through the shared PCRE->ECMAScript translation (see
+// rime/pcre_translator.hpp) so a pattern that works upstream also matches
+// here. An untranslatable one raises regex_error and is skipped, as before.
+#include <rime/pcre_translator.hpp>
 #include <rime/composition.h>
 #include <rime/config.h>
 #include <rime/context.h>
@@ -23,7 +28,7 @@ static void load_patterns(RecognizerPatterns* patterns, an<ConfigMap> map) {
     if (!value)
       continue;
     try {
-      std::regex pattern(value->str());
+      std::regex pattern(TranslatePcreClasses(value->str()));
       (*patterns)[it->first] = pattern;
     } catch (std::regex_error& e) {
       LOG(ERROR) << "error parsing pattern /" << value->str()

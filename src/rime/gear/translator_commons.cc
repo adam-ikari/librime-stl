@@ -6,6 +6,9 @@
 //
 #include <algorithm>
 #include <rime/reverse.hpp>
+// term-ime: shared PCRE->ECMAScript translation for schema-supplied patterns;
+// see rime/pcre_translator.hpp.
+#include <rime/pcre_translator.hpp>
 #include <rime/config.h>
 #include <rime/schema.h>
 #include <rime/ticket.h>
@@ -22,7 +25,16 @@ bool Patterns::Load(an<ConfigList> patterns) {
     return false;
   for (auto it = patterns->begin(); it != patterns->end(); ++it) {
     if (auto value = As<ConfigValue>(*it)) {
-      push_back(std::regex(value->str()));
+      // term-ime: schema-supplied patterns are PCRE upstream; compile through
+      // the shared translation inside a try/catch so a pattern this fork
+      // cannot express is skipped with a log line instead of throwing out of
+      // Load and killing the translator. See rime/pcre_translator.hpp.
+      try {
+        push_back(std::regex(TranslatePcreClasses(value->str())));
+      } catch (std::regex_error& e) {
+        LOG(ERROR) << "error parsing translator pattern /" << value->str()
+                   << "/: " << e.what();
+      }
     }
   }
   return true;

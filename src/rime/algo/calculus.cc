@@ -6,6 +6,10 @@
 //
 #include <rime/string_utils.hpp>
 #include <utf8.h>
+// term-ime: the algebra rules go through the same PCRE->ECMAScript
+// translation as every other runtime pattern entry point; see
+// rime/pcre_translator.hpp.
+#include <rime/pcre_translator.hpp>
 #include <rime/algo/calculus.h>
 #include <rime/common.h>
 
@@ -14,70 +18,6 @@ namespace rime {
 const double kAbbreviationPenalty = -0.6931471805599453;   // log(0.5)
 const double kFuzzySpellingPenalty = -0.6931471805599453;  // log(0.5)
 const double kCorrectionPenalty = -4.605170185988091;      // log(0.01)
-
-namespace {
-
-// Upstream librime compiles xform/derive/abbrev/erase patterns with
-// boost::regex, which implements PCRE. This fork replaced it with std::regex to
-// drop the Boost dependency, but std::regex implements ECMAScript, and the two
-// disagree about the PCRE shorthand classes in a way that fails silently:
-//
-//   ^(\l+)\d$   against "zhang1"  PCRE: matches.  ECMAScript: \l is an escape
-//                                         for the literal letter 'l', so it
-//                                         matches "lll1" and not "zhang1".
-//   ^(\u)\d$    against "Z1"       PCRE: matches.  ECMAScript: throws
-//                                         std::regex_error outright.
-//
-// A schema that works upstream therefore either stops matching or crashes here,
-// and nothing reports it. Rewrite the shorthands ECMAScript lacks or reads
-// differently, so behaviour matches upstream without pulling Boost back in.
-//
-// \d \D \w \W \s \S are deliberately left alone: ECMAScript defines them with the
-// same meaning as PCRE. \p{...} is not translated — ECMAScript has no Unicode
-// property support, and silently matching something else would be worse than
-// failing, so it is left to raise the regex_error it always did.
-string TranslatePcreClasses(const string& pattern) {
-  string out;
-  out.reserve(pattern.size() + 8);
-  bool in_class = false;  // inside [...]
-  for (size_t i = 0; i < pattern.size(); ++i) {
-    char c = pattern[i];
-    if (c == '\\' && i + 1 < pattern.size()) {
-      char next = pattern[i + 1];
-      if (next == '\\') {  // an escaped backslash: copy both, stay literal
-        out += c;
-        out += next;
-        ++i;
-        continue;
-      }
-      // Inside a character class a bare range has to stay bare, because
-      // "[[a-z]]" would nest instead of unioning. Outside one, the class form is
-      // required — and it composes with quantifiers: \l+ -> [a-z]+.
-      const char* expanded = nullptr;
-      switch (next) {
-        case 'l': expanded = in_class ? "a-z"   : "[a-z]"; break;
-        case 'u': expanded = in_class ? "A-Z"   : "[A-Z]"; break;
-        default: break;
-      }
-      if (expanded) {
-        out += expanded;
-      } else {
-        out += c;
-        out += next;
-      }
-      ++i;
-      continue;
-    }
-    if (c == '[' && !in_class)
-      in_class = true;
-    else if (c == ']' && in_class)
-      in_class = false;
-    out += c;
-  }
-  return out;
-}
-
-}  // namespace
 
 Calculus::Calculus() {
   Register("xlit", &Transliteration::Parse);

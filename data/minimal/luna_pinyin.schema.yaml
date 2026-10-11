@@ -153,7 +153,13 @@ key_binder:
 recognizer:
   import_preset: default
   patterns:
-    alphabet: '(?<![A-Z]):[^;]*;?$'
+    # term-ime: upstream's '(?<![A-Z]):[^;]*;?$' needs a PCRE negative
+    # lookbehind, which ECMAScript cannot express and this fork has no Boost
+    # to fall back on — under std::regex the whole pattern failed to compile
+    # and was silently dropped. '(?:^|[^A-Z])' keeps the guard's behaviour
+    # for everything Recognizer does with a match (whether one exists); the
+    # match range itself never leaves GetMatch.
+    alphabet: '(?:^|[^A-Z]):[^;]*;?$'
     cangjie: "C:[a-z']*;?$"
     pinyin: "P:[a-z']*;?$"
     reverse_lookup: "`[a-z]*'?$"

@@ -5,6 +5,11 @@
 // 2013-07-17 GONG Chen <chen.sst@gmail.com>
 //
 #include <rime/string_utils.hpp>
+// term-ime: encoder/exclude_patterns comes from the schema (PCRE upstream);
+// compile through the shared translation inside a try/catch so an
+// untranslatable pattern is skipped with a log line rather than thrown out of
+// LoadSettings. See rime/pcre_translator.hpp.
+#include <rime/pcre_translator.hpp>
 #include <utf8.h>
 #include <rime/config.h>
 #include <rime/algo/encoder.h>
@@ -96,7 +101,13 @@ bool TableEncoder::LoadSettings(Config* config) {
       auto pattern = As<ConfigValue>(*it);
       if (!pattern)
         continue;
-      exclude_patterns_.push_back(std::regex(pattern->str()));
+      try {
+        exclude_patterns_.push_back(
+            std::regex(TranslatePcreClasses(pattern->str())));
+      } catch (std::regex_error& e) {
+        LOG(ERROR) << "error parsing encoder/exclude_patterns pattern /"
+                   << pattern->str() << "/: " << e.what();
+      }
     }
   }
   config->GetString("encoder/tail_anchor", &tail_anchor_);

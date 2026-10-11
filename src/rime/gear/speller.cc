@@ -15,6 +15,9 @@
 #include <rime/key_table.h>
 #include <rime/menu.h>
 #include <rime/schema.h>
+// term-ime: shared PCRE->ECMAScript translation; see
+// rime/pcre_translator.hpp.
+#include <rime/pcre_translator.hpp>
 #include <rime/gear/speller.h>
 
 static const char kRimeAlphabet[] = "zyxwvutsrqponmlkjihgfedcba";
@@ -80,8 +83,19 @@ Speller::Speller(const Ticket& ticket)
     config->GetBool("speller/use_space", &use_space_);
     string pattern;
     if (config->GetString("speller/auto_select_pattern", &pattern)) {
-      auto_select_pattern_ = pattern;
-      has_auto_select_pattern_ = true;
+      // term-ime: assigning a pattern to std::regex throws when it fails to
+      // compile, and PCRE-only constructs (lookbehind, \p{...}) cannot be
+      // translated. Compile through the shared translation inside a
+      // try/catch so a schema this fork cannot express degrades to "no
+      // auto-select pattern" instead of killing the engine at load time.
+      // See rime/pcre_translator.hpp.
+      try {
+        auto_select_pattern_ = std::regex(TranslatePcreClasses(pattern));
+        has_auto_select_pattern_ = true;
+      } catch (std::regex_error& e) {
+        LOG(ERROR) << "error parsing speller/auto_select_pattern /" << pattern
+                   << "/: " << e.what();
+      }
     }
     string auto_clear;
     if (config->GetString("speller/auto_clear", &auto_clear)) {
