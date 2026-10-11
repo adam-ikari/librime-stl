@@ -68,10 +68,9 @@ class MappedFileImpl {
         return;
       }
       mapping_ = mapping;
-      addr_ = ::MapViewOfFile(mapping,
-                              (mode == kOpenReadOnly) ? FILE_MAP_READ
-                                                      : FILE_MAP_WRITE,
-                              0, 0, 0);
+      addr_ = ::MapViewOfFile(
+          mapping, (mode == kOpenReadOnly) ? FILE_MAP_READ : FILE_MAP_WRITE, 0,
+          0, 0);
       if (!addr_) {
         ::CloseHandle(mapping);
         ::CloseHandle(file);
@@ -83,7 +82,8 @@ class MappedFileImpl {
 #else
     int flags = (mode == kOpenReadOnly) ? O_RDONLY : O_RDWR;
     fd_ = ::open(file_path.c_str(), flags);
-    if (fd_ < 0) return;
+    if (fd_ < 0)
+      return;
     struct stat st;
     if (::fstat(fd_, &st) != 0) {
       ::close(fd_);
@@ -105,16 +105,22 @@ class MappedFileImpl {
   }
   ~MappedFileImpl() {
 #ifdef _WIN32
-    if (addr_) ::UnmapViewOfFile(addr_);
-    if (mapping_) ::CloseHandle(mapping_);
-    if (file_) ::CloseHandle(file_);
+    if (addr_)
+      ::UnmapViewOfFile(addr_);
+    if (mapping_)
+      ::CloseHandle(mapping_);
+    if (file_)
+      ::CloseHandle(file_);
 #else
-    if (addr_) ::munmap(addr_, size_);
-    if (fd_ >= 0) ::close(fd_);
+    if (addr_)
+      ::munmap(addr_, size_);
+    if (fd_ >= 0)
+      ::close(fd_);
 #endif
   }
   bool Flush() {
-    if (!addr_) return false;
+    if (!addr_)
+      return false;
 #ifdef _WIN32
     // FlushViewOfFile writes the dirty pages of the mapped view back to the
     // file — the analog of msync(MS_SYNC). (FlushFileBuffers is deliberately

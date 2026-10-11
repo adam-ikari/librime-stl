@@ -90,9 +90,7 @@ bool UserDictManager::Restore(const path& snapshot_file) {
   the<Db> dest(user_db_component_->Create(db_name));
   if (!dest->Open())
     return false;
-  auto _se_dest = rime::make_scope_exit([&] {
-    dest->Close();
-  });
+  auto _se_dest = rime::make_scope_exit([&] { dest->Close(); });
   LOG(INFO) << "merging '" << snapshot_file << "' from "
             << UserDbHelper(temp).GetUserId() << " into userdb '" << db_name
             << "'...";
@@ -106,9 +104,7 @@ int UserDictManager::Export(const string& dict_name, const path& text_file) {
   the<Db> db(user_db_component_->Create(dict_name));
   if (!db->OpenReadOnly())
     return -1;
-  auto _se_db = rime::make_scope_exit([&] {
-    db->Close();
-  });
+  auto _se_db = rime::make_scope_exit([&] { db->Close(); });
   if (!UserDbHelper(db).IsUserDb())
     return -1;
   TsvWriter writer(text_file, TableDb::format.formatter);
@@ -129,9 +125,7 @@ int UserDictManager::Import(const string& dict_name, const path& text_file) {
   the<Db> db(user_db_component_->Create(dict_name));
   if (!db->Open())
     return -1;
-  auto _se_db = rime::make_scope_exit([&] {
-    db->Close();
-  });
+  auto _se_db = rime::make_scope_exit([&] { db->Close(); });
   if (!UserDbHelper(db).IsUserDb())
     return -1;
   TsvReader reader(text_file, TableDb::format.parser);

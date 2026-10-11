@@ -24,9 +24,7 @@ bool UserDbRecoveryTask::Run(Deployer* deployer) {
   if (!db_) {
     return false;
   }
-  auto _se_db = rime::make_scope_exit([&] {
-    db_->enable();
-  });
+  auto _se_db = rime::make_scope_exit([&] { db_->enable(); });
 
   if (db_->loaded()) {
     LOG(WARNING) << "cannot recover loaded db '" << db_->name() << "'.";

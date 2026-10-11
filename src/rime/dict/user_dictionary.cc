@@ -228,9 +228,7 @@ void UserDictionary::DfsLookup(const SyllableGraph& syll_graph,
                << ", syll_id: " << spelling.first
                << ", num_spellings: " << spelling.second.size();
     state->code.push_back(spelling.first);
-    auto _se_code = rime::make_scope_exit([&] {
-      state->code.pop_back();
-    });
+    auto _se_code = rime::make_scope_exit([&] { state->code.pop_back(); });
     if (!TranslateCodeToString(state->code, &prefix))
       continue;
     for (size_t i = 0; i < spelling.second.size(); ++i) {

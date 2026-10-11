@@ -13,7 +13,8 @@
 //
 #include <gtest/gtest.h>
 #include <regex>
-// common.h first: encoder.h uses its string/vector aliases without including it.
+// common.h first: encoder.h uses its string/vector aliases without including
+// it.
 #include <rime/common.h>
 #include <rime/config.h>
 #include <rime/algo/encoder.h>
@@ -71,7 +72,8 @@ TEST(RimePcreCompatTest, RecognizerPatternsGoThroughTranslation) {
   EXPECT_EQ(patterns.end(), patterns.find("untranslatable"));
 }
 
-TEST(RimePcreCompatTest, EncoderExcludePatternsAreTranslatedAndTolerateBadOnes) {
+TEST(RimePcreCompatTest,
+     EncoderExcludePatternsAreTranslatedAndTolerateBadOnes) {
   Config config;
   config["encoder"]["rules"][0]["formula"] = "AaAzBaBz";
   config["encoder"]["rules"][0]["length_equal"] = 2;
