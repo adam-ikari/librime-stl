@@ -15,12 +15,32 @@ Rime with your keystrokes.
 >   macOS `.dylib` / Android `.so`), consumed via the pure C API (`rime_api.h`).
 > - **Boost dropped** (`std::regex` + a minimal `<rime/*.hpp>` set); **opencc
 >   vendored** — the engine configure/build no longer needs a host Python or a
->   host-built `opencc_dict`.
+>   host-built `opencc_dict`. Schema patterns are translated PCRE→ECMAScript by
+>   one shared helper so schemas written for upstream keep working.
 > - **`dict/` is the bundled Simplified dictionary** (luna-pinyin + frequency table
 >   + opencc data), published as a versioned artifact. Its generators live in
 >   `dict/tools/` and are driven by explicit `make`, never by the CMake build graph.
 >
 > Only the dictionary is upstream-derived; the engine patches are this fork's own.
+
+Syncing upstream
+---
+The engine stays a close derivative so upstream fixes keep flowing in:
+
+```sh
+git remote add upstream https://github.com/rime/librime
+git fetch upstream
+git merge upstream/master        # dict/ has no counterpart upstream; it never conflicts
+```
+
+Expect conflicts only where this fork intentionally diverges — the Boost
+shims. The rule that keeps them small: **translate upstream's Boost usage at the
+`#include` line** (shims live in the `boost::` namespace, so call sites are
+untouched). When upstream moves a construct we cannot shim (as with Boost.PP in
+commit `cbf363be`), replace it at configure time instead — that is how
+`src/rime_extra_modules.h.in` came about. After merging, `make test` must be
+green; `make -C dict/tools check && make -C dict/tools smoke` cover the
+bundled dictionary.
 
 Project home
 ---
@@ -67,22 +87,27 @@ Build dependencies
 ---
   - compiler with C++17 support
   - cmake>=3.12
-  - libboost>=1.74
   - libglog>=0.7 (optional)
   - libleveldb
   - libmarisa
-  - libopencc>=1.0.2
+  - libopencc>=1.0.2 (vendored under `deps/opencc`)
   - libyaml-cpp>=0.5
   - libgtest (optional)
 
 Runtime dependencies
 ---
-  - libboost
   - libglog (optional)
   - libleveldb
   - libmarisa
   - libopencc
   - libyaml-cpp
+
+No Boost is required: this fork compiles patterns with `std::regex` and
+replaces the boost facilities librime used (algorithm/string, signals2,
+interprocess, crc, uuid, regex) with the minimal shims under `src/rime/*.hpp`.
+Schema-supplied patterns go through a shared PCRE→ECMAScript translation
+(`src/rime/pcre_translator.hpp`) so schemas written for upstream behave the
+same here; see the fork note above.
 
 Build and install on Linux
 ---

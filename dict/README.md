@@ -15,6 +15,12 @@
 三个文件是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`，
 简体方案再挂 opencc 转换。改其中任何一个都要另两个配套。
 
+**主词库只放「组不出」的条目**。67176 条里 45428 条是单字、其余是成语与固定
+搭配；像「中国」「人工智能」这种能按单字读音组合出来的词**故意不在主词库里**
+——引擎的 `ScriptEncoder` 会动态组词，词频由 essay 提供（43.7 万条里 91%
+不在主词库）。所以「某词不在 luna_pinyin.dict.yaml 里」并不等于打不出来，
+判断词库缺词要先用引擎实测（`make -C tools smoke` 的做法），别看文件下结论。
+
 ## opencc/ 必须是自足的
 
 librime 把 `opencc_config` 解析成 `<共享数据目录>/opencc/<配置文件>`
@@ -108,6 +114,16 @@ essay 取本目录覆盖同名 minimal 文件）装进临时部署，用 `rime_c
 一个多音字的两个读音）。check 证明「与已提交内容一致」，smoke 证明「引擎用
 得动」，两道门缺一不可。
 
+**关于文言读音**：底本里的文言/古读（乡 yuān、于 xū、兒 ní 等）属于**扩展词库
+范畴**，不是错音。它们当前留在主词库里，与上游底本保持一致——底本钉死在
+sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin 自动分流到独立
+扩展词库文件，但 kMandarin 是「最常用读音」单值字段，做不了多音字分类器：
+它把「万 wanmo」「参 can」这类读音判成非现代、把「参差 cēn cī」这种标准现代
+不规则变调判成文言，自动分流必然误伤日常输入。若将来要做，正确形态是**清单
+驱动**（逐条人工审定的文言词清单），而非自动判定；且 librime 的
+`translator/dictionary` 只支持单个词典，挂扩展词典需经 `translator/packs`
+或独立 schema。
+
 `tools/sources.lock` 钉住三个输入坐标。`luna_pinyin` 的底本不是上游某个 release，
 而是本仓 `64eda4c7` 里那份繁体快照（上游此后加了读音权重、补了日文国字与注音
 索引，本仓又剪过 115 行），所以取底本要读 git 历史，浅克隆取不到。
@@ -125,6 +141,9 @@ essay 取本目录覆盖同名 minimal 文件）装进临时部署，用 `rime_c
 |---|---|---|
 | `dict-2026.10.09` | `v1.1.8-rime-stack` | 简繁数据闭包（`t2hk`/`t2tw` + `HK`/`TWVariants.ocd2`）与 `use_preset_vocabulary` 的词频依赖都从这次起 |
 | `dict-2026.10.10` | `v1.1.8-rime-stack` | 纯数据修订：`luna_pinyin.dict.yaml` 错音订正与单字补读音（`tools/pinyin_fixes.txt`），无新引擎依赖 |
+
+（`v1.1.9-rime-stack` 之后的引擎变更——上游 67 提交合并、PCRE 翻译层——属引擎侧，
+不改变词库的最低 stack 要求。）
 
 改词库：在这里改，`make -C tools check` 过，随引擎一起发 stack tag；只动数据就发
 `dict-*`。term-ime 更新 submodule 指针。
