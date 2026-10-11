@@ -22,15 +22,12 @@ jobs:
             cxx_compiler: g++
           - compiler: clang
             cxx_compiler: clang++
-        # boost bootstrap failed on arm platform with clang
-        exclude:
-          - os: ubuntu-26.04-arm
-            compiler: clang
+        # term-ime: no boost exclude needed. Upstream excluded arm+clang
+        # because bootstrapping Boost failed there; this fork does not build
+        # Boost, so the combination is covered like every other.
     env:
       CC: ${{ matrix.compiler }}
       CXX: ${{ matrix.cxx_compiler }}
-      BOOST_ROOT: ${{ github.workspace }}/deps/boost
-      boost_libs: regex
     
     steps:
       - name: Checkout last commit

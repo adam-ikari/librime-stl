@@ -23,7 +23,8 @@ jobs:
             create-distributable: true
             build_variant: universal
     env:
-      BOOST_ROOT: ${{ github.workspace }}/deps/boost
+      # term-ime: no BOOST_ROOT and no boost install step -- this fork builds
+      # without Boost (std::regex + rime/*.hpp shims).
       RIME_PLUGINS: ${{ inputs.rime_plugins }}
     steps:
       - name: Checkout last commit
@@ -43,8 +44,7 @@ jobs:
         run: |
           echo BUILD_UNIVERSAL=1 >> $GITHUB_ENV
 
-      - name: Install Boost
-        run: ./install-boost.sh
+      # term-ime: no Boost install step -- this fork does not require Boost.
 
       - name: Check submodules
         run: git submodule > submodule-status
