@@ -259,3 +259,250 @@ del	打着	da zhao
 del	热血	re xie
 # 那次 nèi cì → nǎ cì
 del	那次	nei ci
+
+# === 单字死读音清理（2026-10-12，audit_readings.py 端到端校准）===
+# 症状：`ffff` 的候选出「不仅仅 / 不复发 / 服不服」。这些词按现代读音是 bù jǐn jǐn，
+# 根本走不到 f-f-f；能走到是因为底本给高频单字收了古读/通假行（仅 fù、不 fū），
+# 而 schema 的 `abbrev/^([a-z]).+$/$1/` 把每个音节缩成首字母，简拼于是能拼出
+# 「现代读音打不出来」的词。
+#
+# 判定线（工具 `make -C tools audit` 可复跑）：与主导读音声母冲突 + 在本仓词库的
+# 多字词条和 pypinyin 现代词组表（47111 条）里双零实配。低频字不进清单：生僻字
+# 的古读是真会被人打的，而简拼污染不到它。叹词/语气词整类豁免（啊 呵 噢 哦 嗯
+# 咯 呢 吗 吧 呀 哈…），它们的读音本来就靠俗成，两套语料都收不全。
+#
+# 删单字行不影响文言词组本身：词行自带音节串。「进可替不」（jin ke ti fou）删掉
+# 「不 fou」单字行后，打全拼仍然出得来；少掉的只是拿 f-f-f 拼「不服」这类污染。
+
+# —— 档 A：宽表（pypinyin 汉典式单字表）都没有这一读，纯底本错音 —————
+del	我	e
+del	还	xuan
+del	她	yi
+del	月	rou
+del	请	jing
+del	钱	jian
+del	开	jian
+del	开	qian
+del	区	gou
+del	页	xie
+del	样	xiang
+del	条	di
+del	唔	mu
+del	关	xiao
+del	费	bi
+del	坏	bei
+del	留	da
+del	抓	chua
+del	抢	chuang
+del	亲	xin
+del	亲	zhen
+del	权	shu
+del	价	shu
+del	物	zhi
+del	业	nie
+del	业	qiu
+del	孙	xun
+del	咁	qian
+del	板	pan
+del	亏	xu
+del	纯	zhun
+del	盖	he
+del	乡	yuan
+del	归	kui
+del	汉	nv
+del	诶	eh
+del	鞋	hai
+del	荣	ce
+del	曲	ju
+del	遍	pian
+del	佢	ju
+del	圣	guai
+del	净	zheng
+del	义	cha
+del	届	qu
+del	俊	zun
+del	京	yuan
+del	矿	gong
+del	核	jiao
+del	撞	chuang
+del	钻	chan
+del	念	dian
+del	隔	jie
+del	备	yuan
+del	湿	xi
+del	乙	zhe
+del	壳	que
+del	靓	qian
+del	曼	wan
+del	摄	nie
+del	邪	yu
+del	碎	cui
+del	吼	kong
+del	贷	te
+del	刮	ka
+del	介	ga
+del	浜	pin
+del	虹	gang
+del	参	san
+del	确	jiao
+del	适	gua
+del	触	hong
+del	赫	chi
+del	炖	zhun
+del	聂	she
+del	卵	ruan
+del	邮	di
+del	僧	zeng
+del	裙	jun
+del	恰	xia
+del	虐	yao
+del	滨	pin
+del	趋	cu
+del	樊	pan
+del	凸	die
+del	凸	gu
+del	磅	beng
+del	翟	zhe
+del	宪	hun
+del	宪	mao
+del	崖	ai
+del	沁	shen
+del	揪	qiu
+del	凹	yao
+del	卸	yu
+del	兑	yue
+del	抚	wu
+del	霉	hui
+del	畔	ban
+del	叁	can
+del	叁	cen
+del	抠	qu
+del	蜡	cha
+del	耕	jing
+del	荡	tang
+del	葵	gui
+del	猎	ji
+del	冈	wang
+del	挠	rao
+del	概	kai
+del	臀	dian
+del	璇	jun
+del	眨	fa
+del	蕴	wen
+del	菁	qing
+del	蘸	jiao
+del	瞅	qiu
+del	陡	tu
+del	陕	xia
+del	爵	que
+
+# —— 档 B：宽表有记录，但《现代汉语词典》现代规范不收的古读/通假读 ———
+# 这一档逐条人工判定：只删「今天没有任何词把它配成这一音」且「同字已有现代主读」的行。
+del	不	fu
+del	不	fou
+del	仅	fu
+del	听	yi
+del	听	yin
+del	机	wei
+del	女	ru
+del	王	yu
+del	俺	yan
+del	儿	ren
+del	台	si
+del	台	yi
+del	离	chi
+del	均	yun
+del	达	ti
+del	感	han
+del	团	qiu
+del	份	bin
+del	需	nuo
+del	需	ru
+del	需	ruan
+del	招	qiao
+del	厂	an
+del	体	ben
+del	追	dui
+del	亏	yu
+del	睇	ti
+del	冰	ning
+del	造	cao
+# 保留：厂 han（同「罕」，稀疏）、厂 yan（古「厳」）—— 现代词典仍列
+
+# === 现代规范读音补行（2026-10-12，audit_readings.py --words / --coverage）===
+# 上一节删的是「底本多收了打不出词的 dead 读音」；这一节补的是反向缺口：底本
+# 只收了旧读/异读，现代规范读音在本仓根本打不出来。判据同样三条，缺一不收：
+#   1) 该读音在 pypinyin 单字宽表（汉典式）有记录 —— 不是靠联想补字；
+#   2) 词库该字（或该词）现有各行里没有这一读 —— 已双读的一律不动（摇曳
+#      yao ye / yao yi 都在，就不是缺口）；
+#   3) essay 里真有用到：词组行要求词频 >= 100，单字行要求「卡住的词的词频
+#      之和」>= 100。文言长尾（freq 0）不收，收了也没人打。
+# 逐字核对过《现代汉语词典》第 7 版读音；被 pypinyin 的上下文猜测带偏的都不收
+# （精雕细琢它给 zuo，规范 zhuo 已有行；区域网路它给 luo，正读 lu；收歛它给
+# han，正读 lian；啜饮它给 chuai，正读 chuo）。
+
+# —— 词组行：底本只有旧读，补现代读（旧读行保留，文言仍打得出）——
+add	哎哟	ai yo
+add	一怔	yi zheng
+add	单骑	dan qi
+add	骠骑	piao qi
+add	哑然	ya ran
+add	哑然失笑	ya ran shi xiao
+add	仡佬族	ge lao zu
+add	桡骨	rao gu
+add	宁馨儿	ning xin er
+add	坯子	pi zi
+add	咳血	ke xie
+add	咳血	ke xue
+add	蹦跶	beng da
+add	体癣	ti xuan
+add	头癣	tou xuan
+add	发癣	fa xuan
+add	发怔	fa zheng
+add	数珠	shu zhu
+add	敬业乐群	jing ye le qun
+add	捋虎须	luo hu xu
+add	诱掖	you ye
+add	浮家泛宅	fu jia fan zhai
+add	乘胜逐北	cheng sheng zhu bei
+add	南箕北斗	nan ji bei dou
+add	厕身其间	ce shen qi jian
+add	无适无莫	wu shi wu mo
+add	纲纪废弛	gang ji fei chi
+add	不丰不杀	bu feng bu sha
+add	采兰赠芍	cai lan zeng shao
+add	腼颜事仇	mian yan shi chou
+add	朴讷诚笃	pu ne cheng du
+add	怔住	zheng zhu
+
+# —— 单字行：词库漏收的规范读/地名读/和制汉字读 ——
+add	呷	ga
+add	琢	zuo
+add	堡	bu
+add	柞	zha
+add	犍	qian
+add	瞓	fen
+add	睥	pi
+add	骠	biao
+add	畑	tian
+add	瓿	bu
+add	券	xuan
+add	转	zhuai
+add	碡	zhou
+add	伧	chen
+add	彟	yue
+add	掴	guai
+add	芏	du
+add	麿	mi
+add	吖	ya
+add	睃	suo
+add	崤	xiao
+add	鮨	yi
+add	膪	chuai
+add	螲	zhi
+add	辻	shi
+add	舡	chuan
+add	孖	ma
+# 保留不收：嗯 n（成节音，加了等于把单字母 n 变成候选，简拼更乱）、
+# 巂 gui / 郇 huan（正读 xun/xi 已有行）、靬 qian / 黮 dan / 牏 yu / 衖 xiang /
+# 筊 xiao（文言或和语专字，essay 词频不够）。
