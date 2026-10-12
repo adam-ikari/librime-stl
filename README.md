@@ -8,39 +8,12 @@ RIME: Rime Input Method Engine
 
 Rime with your keystrokes.
 
-> **This is `librime-stl`, a fork of [rime/librime](https://github.com/rime/librime).**
-> It powers [term-ime](https://github.com/adam-ikari/term-ime), a TTY input method,
-> and differs from upstream in three ways:
-> - **Engine library artifacts for four platforms** (Linux `.so` / Windows `.dll` /
->   macOS `.dylib` / Android `.so`), consumed via the pure C API (`rime_api.h`).
-> - **Boost dropped** (`std::regex` + a minimal `<rime/*.hpp>` set); **opencc
->   vendored** — the engine configure/build no longer needs a host Python or a
->   host-built `opencc_dict`. Schema patterns are translated PCRE→ECMAScript by
->   one shared helper so schemas written for upstream keep working.
-> - **`dict/` is the bundled Simplified dictionary** (luna-pinyin + frequency table
->   + opencc data), published as a versioned artifact. Its generators live in
->   `dict/tools/` and are driven by explicit `make`, never by the CMake build graph.
->
-> Only the dictionary is upstream-derived; the engine patches are this fork's own.
-
-Syncing upstream
----
-The engine stays a close derivative so upstream fixes keep flowing in:
-
-```sh
-git remote add upstream https://github.com/rime/librime
-git fetch upstream
-git merge upstream/master        # dict/ has no counterpart upstream; it never conflicts
-```
-
-Expect conflicts only where this fork intentionally diverges — the Boost
-shims. The rule that keeps them small: **translate upstream's Boost usage at the
-`#include` line** (shims live in the `boost::` namespace, so call sites are
-untouched). When upstream moves a construct we cannot shim (as with Boost.PP in
-commit `cbf363be`), replace it at configure time instead — that is how
-`src/rime_extra_modules.h.in` came about. After merging, `make test` must be
-green; `make -C dict/tools check && make -C dict/tools smoke` cover the
-bundled dictionary.
+> **Fork.** This is `librime-stl`, a dependency-trimmed fork of
+> [rime/librime](https://github.com/rime/librime): the engine configures and builds
+> without Boost, without a host Python and without a host-built `opencc_dict`.
+> Everything below is upstream's README, kept verbatim; a `Fork.` quote block and
+> the two sections after “Build and install on Linux” are the only additions, and
+> [Differences from upstream](#differences-from-upstream) is the full list.
 
 Project home
 ---
@@ -48,19 +21,15 @@ Project home
 
 License
 ---
-The engine is [rime/librime](https://github.com/rime/librime), Copyright the RIME
-Developers, distributed under the 3-Clause BSD License. This fork keeps the upstream
-`LICENSE` verbatim — the engine patches are an upstream-compatible derivative, not a
-relicense. Data under `dict/` is a separate matter and follows its own sources
-(LGPL-3.0 for `essay.txt` and `luna_pinyin.dict.yaml`; Apache-2.0 for the OpenCC-derived
-tables; MIT for this project's own tables) — see [dict/LICENSE](dict/LICENSE) and
-[THIRD-PARTY.md](THIRD-PARTY.md). This repository is therefore BSD-3 for the engine plus
-the retained terms of the bundled data, not a single uniform license.
+[The 3-Clause BSD License](https://opensource.org/licenses/BSD-3-Clause)
 
-Full texts are vendored under [`licenses/`](licenses/) (LGPL-3.0, GPL-3.0,
-Apache-2.0). The `dict/` data may be bundled into another program; see
-[dict/LICENSE](dict/LICENSE) for the distribution obligations.
-
+> **Fork.** Licensing here is not uniform. The engine is upstream's, and the upstream
+> `LICENSE` is kept verbatim -- the patches are an upstream-compatible derivative,
+> not a relicense. Data under `dict/` is a separate matter and follows its own
+> sources: LGPL-3.0 for `essay.txt` and `luna_pinyin.dict.yaml`, Apache-2.0 for the
+> OpenCC-derived tables, MIT for this project's own tables. Full texts are vendored
+> under [`licenses/`](licenses/); see [dict/LICENSE](dict/LICENSE) for the
+> distribution obligations when bundling the data.
 
 Features
 ===
@@ -81,7 +50,9 @@ Install
 Follow the instructions to build librime on platforms other than Linux:
   - [macOS](https://github.com/rime/librime/tree/master/README-mac.md)
   - [Windows](https://github.com/rime/librime/tree/master/README-windows.md)
-  - [Android](https://github.com/adam-ikari/librime-stl/tree/master/README-android.md)
+
+> **Fork.** Android has no upstream guide; see
+> [README-android.md](README-android.md) for this fork's cross-build.
 
 Build dependencies
 ---
@@ -90,7 +61,7 @@ Build dependencies
   - libglog>=0.7 (optional)
   - libleveldb
   - libmarisa
-  - libopencc>=1.0.2 (vendored under `deps/opencc`)
+  - libopencc>=1.0.2
   - libyaml-cpp>=0.5
   - libgtest (optional)
 
@@ -102,12 +73,13 @@ Runtime dependencies
   - libopencc
   - libyaml-cpp
 
-No Boost is required: this fork compiles patterns with `std::regex` and
-replaces the boost facilities librime used (algorithm/string, signals2,
-interprocess, crc, uuid, regex) with the minimal shims under `src/rime/*.hpp`.
-Schema-supplied patterns go through a shared PCRE→ECMAScript translation
-(`src/rime/pcre_translator.hpp`) so schemas written for upstream behave the
-same here; see the fork note above.
+> **Fork.** No Boost is required. These two lists are the only place this fork
+> deletes upstream lines: `libboost>=1.74` above and `libboost` in the runtime
+> list. Patterns compile with `std::regex`, and schema-supplied patterns go through
+> a shared PCRE→ECMAScript translation so schemas written for upstream keep
+> working. OpenCC is vendored under `deps/opencc` with its generated tables
+> committed under `dict/opencc/`, so neither a host Python nor a host-executed
+> `opencc_dict` is needed to build the engine.
 
 Build and install on Linux
 ---
@@ -115,6 +87,52 @@ Build and install on Linux
 make
 sudo make install
 ```
+
+Differences from upstream
+===
+The engine stays a close derivative, so the list is short and each item is a
+dependency question rather than a behaviour change.
+
+  - **No Boost.** `std::regex` plus a minimal `<rime/*.hpp>` shim set replaces the
+    boost facilities librime used (algorithm/string, signals2, interprocess, crc,
+    uuid, regex). Upstream's Boost usage is translated at the `#include` line -- the
+    shims live in the `boost::` namespace, so call sites are untouched. Constructs
+    that cannot be shimmed are replaced at configure time instead (Boost.PP became
+    `src/rime_extra_modules.h.in`).
+  - **Regex compatibility layer.** Schema-supplied patterns go through a shared
+    PCRE→ECMAScript translation ([src/rime/pcre_translator.hpp](src/rime/pcre_translator.hpp)),
+    and a bad pattern can no longer take the engine down with it.
+  - **OpenCC vendored** ([deps/opencc](deps/opencc)), with the `.ocd2` binaries it
+    would otherwise generate at build time committed under `dict/opencc/`.
+    Configure and build need no host Python and no host-built `opencc_dict` -- the
+    latter used to break cross-compiling outright (`Exec format error` under NDK).
+  - **The shared library builds for more platforms.** commit-ci builds it for
+    Linux, macOS, Windows and Android and checks the produced library (Android
+    verifies `librime.so` with `readelf -d`); consumers link against it through
+    the pure C API ([include/rime_api.h](include/rime_api.h)).
+  - **A bundled Simplified Chinese dictionary** ([dict/](dict)): `luna_pinyin.dict.yaml`
+    + `essay.txt` + the opencc data, published as a versioned artifact
+    ([dict/CHANGELOG.md](dict/CHANGELOG.md)). Upstream ships none. Its generators live
+    in [dict/tools](dict/tools) and are driven by explicit `make`, never by the CMake
+    build graph, so generating data and configuring the engine stay two separate
+    jobs. Two gates: `make -C dict/tools check` regenerates and byte-compares the
+    committed data, `make -C dict/tools smoke` deploys it and asserts candidate
+    behaviour against the real engine.
+
+Syncing upstream
+===
+```sh
+git remote add upstream https://github.com/rime/librime
+git fetch upstream
+git merge upstream/master        # dict/ has no counterpart upstream; it never conflicts
+```
+
+`README.md` is upstream's text with the `Fork.` blocks and the two sections above
+added, so a merge only conflicts where upstream rewrote a paragraph around one of
+them. Expect conflicts otherwise only where this fork intentionally diverges --
+the Boost shims. After merging, `make test` must be green, and
+`make -C dict/tools check && make -C dict/tools smoke` must cover the bundled
+dictionary.
 
 Packaging status
 ---
@@ -168,9 +186,13 @@ Related works
   - [plum](https://github.com/rime/plum): Rime configuration (recipe) installer
   - [combo-pinyin](https://github.com/rime/home/wiki/ComboPinyin): an innovative
     chord-typing practice to input Pinyin
-  - [rime-luna-pinyin](https://github.com/rime/rime-luna-pinyin): the luna_pinyin
-    dictionary (LGPL-3.0) that `dict/luna_pinyin.dict.yaml` derives from
+  - [rime-essay](https://github.com/rime/rime-essay): the preset vocabulary
   - [SCU](https://github.com/neolee/SCU): Squirrel Configuration Utilities
+
+> **Fork.** `dict/luna_pinyin.dict.yaml` derives from
+> [rime-luna-pinyin](https://github.com/rime/rime-luna-pinyin) (LGPL-3.0) and
+> `dict/essay.txt` from [rime-essay](https://github.com/rime/rime-essay); both are
+> pinned in [dict/tools/sources.lock](dict/tools/sources.lock).
 
 Credits
 ===
