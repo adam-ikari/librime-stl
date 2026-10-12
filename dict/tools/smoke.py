@@ -10,13 +10,19 @@ answers the other half of the question by deploying dict/ the way an install
 does (engine data from data/minimal/, dictionary and essay from dict/, both
 overriding the minimal ones) and driving rime_console against it.
 
-Two kinds of check:
+Four kinds of check:
 
   1. the deployment must build with zero glog error lines. A pattern or entry
      that fails to compile is exactly the class of problem that is otherwise
      invisible until a user's IME misbehaves;
   2. a few probes must commit the expected text, including both readings of a
-     polyphone, so a dictionary that only routes the default reading fails.
+     polyphone, so a dictionary that only routes the default reading fails;
+  3. initial-only probes must not offer words whose only spelling route was a
+     dead reading (see ABBREV_PROBES) -- that is the half of the dictionary a
+     byte-diff cannot see;
+  4. the modern standard spelling of a word the traditional base only carried
+     under an archaic reading must reach it (see ADD_PROBES) -- the other half
+     of the same calibration, deletions on one side and补读 on the other.
 
 Usage:
     python3 smoke.py [--rime-console PATH] [--keep]
@@ -65,6 +71,43 @@ PROBES = [
                            # are each also readings of other characters
 ]
 
+# Initial-only (简拼) calibration. The schema's `abbrev/^([a-z]).+$/$1/` shrinks
+# every syllable to its first letter, so a dead reading on one character lets an
+# abbreviation reach words no modern reading can type: `fff` used to offer
+# 不仅仅 (bù jǐn jǐn) because the base carries 仅 fù. Each entry is
+# (keys, expected on page one, forbidden on page one). Forbidden texts are the
+# ones whose only route to these keys was a deleted reading -- they come back
+# exactly when a base upgrade restores it. The `expected` side guards the
+# opposite error: deleting a reading must not delete the word's real spelling.
+ABBREV_PROBES = [
+    ("ffff", ["反反覆覆"],
+              ["不仅仅", "服不服", "不复发", "不悱不发", "烦不烦", "放不放"]),
+    ("fff", ["凤飞飞"], ["不仅仅", "服不服", "不复发"]),
+    ("bjj", ["不仅仅"], []),           # 正读 bù jǐn jǐn 必须还在
+    ("rr", ["让人"], ["女人", "女儿"]),   # 女 rǔ 删除后 r-r 拼不出「女人」
+    ("sbsb", ["是不是"], ["身份识别"]),    # 份 bīn 删除后 s-b-s-b 拼不出「身份识别」
+]
+
+# The opposite gap: readings the traditional base never carried, so the modern
+# standard spelling typed nothing at all (底本只有旧读 体癣 ti xian，规范 ti xuan
+# 打不出来). pinyin_fixes.txt `add` rows are the fix; these probes are the proof
+# that the spelling now reaches the word -- via the added word row or by
+# composing from the added single-character row. Keys are chosen where the
+# modern spelling has no high-frequency rival: 崤 xiao is in the dictionary now,
+# but `xiaoshan` still shows 萧山 on page one, which is the correct ranking and
+# not something this gate can or should assert.
+ADD_PROBES = [
+    ("tixuan", "体癣"),
+    ("yizheng", "一怔"),
+    ("raogu", "桡骨"),
+    ("anbu", "安瓿"),
+    ("pini", "睥睨"),
+    ("gongxuan", "拱券"),
+    ("huangbiaoma", "黄骠马"),
+    ("bengda", "蹦跶"),
+    ("jianwei", "犍为"),
+]
+
 
 def fail(msg):
     print(f"FAIL {msg}")
@@ -107,6 +150,16 @@ def probe(console, root, keys):
     return lines[-1] if lines else ""
 
 
+CAND = re.compile(r"cand\. \d+: \[([^\]]+)\]")
+
+
+def probe_candidates(console, root, keys):
+    """First page of candidates, via -i (interactive mode: no commit)."""
+    proc = subprocess.run([str(console), "-i", str(root)], cwd=root,
+                          input=f"{keys}\n", capture_output=True, text=True)
+    return CAND.findall(proc.stdout)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rime-console", default=str(DEFAULT_CONSOLE))
@@ -145,6 +198,26 @@ def main():
                 print(f"OK   {keys} -> {got}")
             else:
                 failures += fail(f"{keys} -> {got!r}, expected {expected!r}")
+
+        for keys, expected, forbidden in ABBREV_PROBES:
+            page = probe_candidates(console, root, keys)
+            missing = [t for t in expected if t not in page]
+            leaked = [t for t in forbidden if t in page]
+            if missing or leaked:
+                detail = []
+                if missing:
+                    detail.append(f"期望 {missing} 不在首页")
+                if leaked:
+                    detail.append(f"死读音候选 {leaked} 回来了")
+                failures += fail(f"{keys} -> {page}，" + "；".join(detail))
+            else:
+                print(f"OK   {keys} -> {page[0] if page else '(none)'}")
+        for keys, word in ADD_PROBES:
+            page = probe_candidates(console, root, keys)
+            if word in page:
+                print(f"OK   {keys} -> {word}")
+            else:
+                failures += fail(f"{keys} -> {page}，首页没有 {word}")
     finally:
         if args.keep:
             print(f"deployment kept at {root}")

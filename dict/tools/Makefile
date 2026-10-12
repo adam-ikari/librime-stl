@@ -8,11 +8,16 @@
 #   make all              以上三个产物
 #   make check            重新生成并与 dict/ 已提交内容逐字节比对
 #   make smoke            用真实引擎冒烟：把 dict/ 部署出来跑候选断言
+#   make audit            单字死读音审计：污染首字母简拼的读音（只读）
+#   make audit-words      词组行只有旧读、现代读打不出来（只读）
+#   make audit-coverage   单字漏收规范读造成的组词盲区（只读）
 #   make package          打成发布 tarball
 #
 # check 是产物一致性的验收：diff 非空就是脚本错了，不许改数据去「对齐」。
 # smoke 是可用性的验收：check 全绿也可能引擎读不动这些数据（无调注音、
 # schema 模式编译失败、词条被表构建器拒绝），只有真部署一遍才算证明。
+# audit 是校准用的读数工具，需要开发期 oracle（pip install pypinyin）；
+# 它不写数据，产出的人工核对结果落成 pinyin_fixes.txt 的 del 行。
 
 TOOLS := $(CURDIR)
 DICT  := $(abspath $(TOOLS)/..)
@@ -34,7 +39,7 @@ PY ?= python3
 VERSION := $(shell cat $(DICT)/VERSION)
 NAME := term-ime-dict-$(VERSION)
 
-.PHONY: all check clean dict essay ocd2 package smoke toolchain
+.PHONY: all audit audit-words audit-coverage check clean dict essay ocd2 package smoke toolchain
 
 all: $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/opencc
 
@@ -90,6 +95,23 @@ check: all
 # RIME_CONSOLE=/path/to/rime_console.
 smoke:
 	$(PY) smoke.py --rime-console $${RIME_CONSOLE:-$(abspath $(TOOLS)/../../build/bin/rime_console)}
+
+# Reading audit: read-only. Prints the single-character readings that hijack
+# initial-only input; --emit-del pastes them as pinyin_fixes.txt directives.
+# MIN_FREQ raises or lowers the character-frequency floor (default 1000).
+audit:
+	$(PY) audit_readings.py --min-freq $${MIN_FREQ:-1000} $(if $(EMIT),--emit-del,)
+
+# 另两个校准轴：词组行只有旧读（现代规范读音打不出来），以及单字漏收规范读
+# 导致的组词盲区。EMIT=1 时输出可直接粘贴的 add 行（仍须逐条核对字典）。
+audit-words:
+	$(PY) audit_readings.py --words --confirmed-only \
+	  $(if $(EMIT),--emit-fix,) --limit $${LIMIT:-60}
+
+audit-coverage:
+	$(PY) audit_readings.py --coverage --top-words $${TOP_WORDS:-437873} \
+	  --min-weight $${MIN_WEIGHT:-100} $(if $(EMIT),--emit-fix,) \
+	  --limit $${LIMIT:-60}
 
 package: all
 	rm -rf $(PKG)
