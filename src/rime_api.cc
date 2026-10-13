@@ -22,7 +22,7 @@ RIME_DEPRECATED void RimeSetupLogging(const char* app_name) {
 #if RIME_BUILD_SHARED_LIBS
 void rime_declare_module_dependencies() {}
 #else
-// term-ime: upstream (cbf363be) generates the plugin declarations & calls
+// fork: upstream (cbf363be) generates the plugin declarations & calls
 // below by expanding the Boost.PP sequence RIME_EXTRA_MODULES; this fork
 // drops Boost, so CMake writes the identical expansions into
 // rime_extra_modules.h at configure time instead.

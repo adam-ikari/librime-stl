@@ -18,7 +18,7 @@
 #include <rime/module.h>
 #include <rime/service.h>
 #include <rime/setup.h>
-// term-ime: upstream (cbf363be) expands RIME_EXTRA_MODULES — a Boost.PP
+// fork: upstream (cbf363be) expands RIME_EXTRA_MODULES — a Boost.PP
 // sequence — with Boost.Preprocessor here; this fork drops Boost entirely, so
 // CMake writes the identical string fragment into rime_extra_modules.h at
 // configure time instead.

@@ -1,5 +1,5 @@
 //
-// Minimal boost::crc_32_type replacement for term-ime.
+// Minimal boost::crc_32_type replacement for this fork.
 // Standard CRC-32 (zlib polynomial 0xEDB88320 reflected). API: process_bytes,
 // checksum — matches boost::crc_32_type usage in utilities.{h,cc}.
 //

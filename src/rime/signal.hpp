@@ -1,5 +1,5 @@
 //
-// Minimal boost::signals2 replacement for term-ime.
+// Minimal boost::signals2 replacement for this fork.
 //
 // Provides signal<Signature> and connection with the subset of the signals2 API
 // that librime uses:

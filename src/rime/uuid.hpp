@@ -1,5 +1,5 @@
 //
-// Minimal boost::uuids replacement for term-ime.
+// Minimal boost::uuids replacement for this fork.
 // On Linux, reads a random UUID v4 from /proc/sys/kernel/random/uuid (same
 // format boost::uuids::to_string produces). Exposes boost::uuids::to_string
 // and a random_generator-compatible callable so the call site compiles.

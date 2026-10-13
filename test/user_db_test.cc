@@ -5,7 +5,7 @@
 // 2011-07-03 GONG Chen <chen.sst@gmail.com>
 //
 //
-// term-ime: <cmath> added — std::isnan needs it with this libstdc++, upstream
+// fork: <cmath> added — std::isnan needs it with this libstdc++, upstream
 // (8bf987ab) only compiled by accident of transitive includes.
 //
 #include <cmath>

@@ -12,4 +12,4 @@ dep_packages=(
 sudo apt update
 sudo apt install -y ${dep_packages[@]}
 
-# term-ime: no install-boost.sh -- this fork builds without Boost.
+# fork: no install-boost.sh -- this fork builds without Boost.

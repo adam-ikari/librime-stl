@@ -5,7 +5,7 @@
 
 #include "streaming_chord_processor.h"
 #include <cctype>
-// term-ime: <boost/algorithm/string.hpp> replaced with the fork's shim; the
+// fork: <boost/algorithm/string.hpp> replaced with the fork's shim; the
 // boost:: call sites are unchanged (the shim provides them in namespace boost).
 #include <rime/string_utils.hpp>
 #include <utf8.h>

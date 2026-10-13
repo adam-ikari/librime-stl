@@ -15,7 +15,7 @@
 #include <rime/key_table.h>
 #include <rime/menu.h>
 #include <rime/schema.h>
-// term-ime: shared PCRE->ECMAScript translation; see
+// fork: shared PCRE->ECMAScript translation; see
 // rime/pcre_translator.hpp.
 #include <rime/pcre_translator.hpp>
 #include <rime/gear/speller.h>
@@ -83,7 +83,7 @@ Speller::Speller(const Ticket& ticket)
     config->GetBool("speller/use_space", &use_space_);
     string pattern;
     if (config->GetString("speller/auto_select_pattern", &pattern)) {
-      // term-ime: assigning a pattern to std::regex throws when it fails to
+      // fork: assigning a pattern to std::regex throws when it fails to
       // compile, and PCRE-only constructs (lookbehind, \p{...}) cannot be
       // translated. Compile through the shared translation inside a
       // try/catch so a schema this fork cannot express degrades to "no

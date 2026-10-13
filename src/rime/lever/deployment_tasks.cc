@@ -342,7 +342,7 @@ bool SchemaUpdate::Run(Deployer* deployer) {
   if (!config_file_update->Run(deployer)) {
     return false;
   }
-  // term-ime patch: skip the reload via Config::Require (which looks for a
+  // fork patch: skip the reload via Config::Require (which looks for a
   // compiled schema in staging_dir that doesn't exist on a fresh deploy from
   // source .yaml). The source-loaded config above already has __include/__patch
   // expanded, so translator/dictionary is readable from it.
@@ -373,7 +373,7 @@ bool SchemaUpdate::Run(Deployer* deployer) {
       Service::instance().CreateDeployedResourceResolver(
           {"compiled_schema", "", ".schema.yaml"}));
   auto compiled_schema = resolver->ResolvePath(schema_id);
-  // term-ime patch: if the compiled schema doesn't exist in staging (fresh
+  // fork patch: if the compiled schema doesn't exist in staging (fresh
   // deploy from source .yaml, no prebuilt build/), fall back to the source
   // schema file — LoadFromFile resolves __include/__patch so prism's
   // speller/algebra is readable.

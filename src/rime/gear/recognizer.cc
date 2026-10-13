@@ -5,7 +5,7 @@
 // 2012-01-01 GONG Chen <chen.sst@gmail.com>
 //
 #include <rime/common.h>
-// term-ime: schema-supplied recognizer patterns are PCRE upstream; compile
+// fork: schema-supplied recognizer patterns are PCRE upstream; compile
 // them through the shared PCRE->ECMAScript translation (see
 // rime/pcre_translator.hpp) so a pattern that works upstream also matches
 // here. An untranslatable one raises regex_error and is skipped, as before.

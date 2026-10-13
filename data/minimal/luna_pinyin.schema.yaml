@@ -153,7 +153,7 @@ key_binder:
 recognizer:
   import_preset: default
   patterns:
-    # term-ime: upstream's '(?<![A-Z]):[^;]*;?$' needs a PCRE negative
+    # fork: upstream's '(?<![A-Z]):[^;]*;?$' needs a PCRE negative
     # lookbehind, which ECMAScript cannot express and this fork has no Boost
     # to fall back on — under std::regex the whole pattern failed to compile
     # and was silently dropped. '(?:^|[^A-Z])' keeps the guard's behaviour

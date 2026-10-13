@@ -1,5 +1,5 @@
 //
-// Minimal boost::algorithm/string replacement for term-ime.
+// Minimal boost::algorithm/string replacement for this fork.
 //
 // Implements the subset of boost::algorithm/string that librime uses, exposed
 // under the `boost::` namespace so call sites compile unchanged (only the

@@ -22,7 +22,7 @@ jobs:
             cxx_compiler: g++
           - compiler: clang
             cxx_compiler: clang++
-        # term-ime: no boost exclude needed. Upstream excluded arm+clang
+        # fork: no boost exclude needed. Upstream excluded arm+clang
         # because bootstrapping Boost failed there; this fork does not build
         # Boost, so the combination is covered like every other.
     env:
@@ -43,7 +43,7 @@ jobs:
         env:
           CMAKE_GENERATOR: Ninja
 
-      # term-ime: the bundled dictionary is not part of the engine build, so
+      # fork: the bundled dictionary is not part of the engine build, so
       # nothing else here proves the engine can read it. Deploy dict/ for real
       # and assert candidates -- see dict/README.md.
       - name: Dictionary smoke test

@@ -1,5 +1,5 @@
 //
-// term-ime: every runtime regex entry point must behave like upstream's
+// fork: every runtime regex entry point must behave like upstream's
 // boost::regex (PCRE) as far as std::regex (ECMAScript) allows.
 //
 // Before this translation was shared, only the algebra rules went through it:

@@ -1,5 +1,5 @@
 //
-// Minimal boost::scope_exit replacement for term-ime (C++17).
+// Minimal boost::scope_exit replacement for this fork (C++17).
 //
 // Usage: `auto _se = rime::make_scope_exit([&]{ ... });` — the lambda runs when
 // _se goes out of scope. Replaces BOOST_SCOPE_EXIT((&x)) { ... } SCOPE_EXIT_END.

@@ -82,9 +82,9 @@ if(MSVC)
 endif()
 
 if(LINUX)
-  # term-ime patched librime to drop Boost entirely: boost::regex -> std::regex,
+  # This fork patched librime to drop Boost entirely: boost::regex -> std::regex,
   # and boost::algorithm/signals2/interprocess/crc/uuid -> <rime/*.hpp> shims.
-  # No find_package(Boost) needed (the only <boost/...> include left in term-ime
+  # No find_package(Boost) needed (the only <boost/...> include left in this fork
   # is boost/sml.hpp, from the bundled deps/sml submodule, not system Boost).
 endif()
 # Keep BOOST_DLL_USE_STD_FS so librime's path class uses std::filesystem.
@@ -302,7 +302,7 @@ endif()
 add_subdirectory(plugins)
 message(STATUS "rime_plugins_libs: ${rime_plugins_deps}")
 message(STATUS "rime_plugins_modules: ${rime_plugins_modules}")
-# term-ime: upstream cbf363be turned rime_plugins_modules into a Boost.PP
+# fork: upstream cbf363be turned rime_plugins_modules into a Boost.PP
 # sequence (RIME_SETUP_EXTRA_MODULES) that setup.cc / rime_api.cc expanded
 # with Boost.Preprocessor; this fork drops Boost, so src/CMakeLists.txt now
 # consumes rime_plugins_modules directly and generates rime_extra_modules.h.

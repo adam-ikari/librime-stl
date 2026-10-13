@@ -17,7 +17,7 @@ if not defined RIME_ROOT set RIME_ROOT=%CD%
 echo RIME_ROOT=%RIME_ROOT%
 echo.
 
-:: term-ime: this fork builds without Boost (std::regex + rime/*.hpp shims), so
+:: fork: this fork builds without Boost (std::regex + rime/*.hpp shims), so
 :: BOOST_ROOT is optional here. Upstream aborts when it is set but missing; we
 :: only warn, because a stale BOOST_ROOT from env.bat must not fail the build.
 if defined BOOST_ROOT (

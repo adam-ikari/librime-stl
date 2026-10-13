@@ -22,7 +22,7 @@ Four kinds of check:
      byte-diff cannot see;
   4. the modern standard spelling of a word the traditional base only carried
      under an archaic reading must reach it (see ADD_PROBES) -- the other half
-     of the same calibration, deletions on one side and补读 on the other.
+     of the same calibration: deletions on one side, added readings on the other.
 
 Usage:
     python3 smoke.py [--rime-console PATH] [--keep]
@@ -71,7 +71,7 @@ PROBES = [
                            # are each also readings of other characters
 ]
 
-# Initial-only (简拼) calibration. The schema's `abbrev/^([a-z]).+$/$1/` shrinks
+# Initial-only (abbreviated) calibration. The schema's `abbrev/^([a-z]).+$/$1/` shrinks
 # every syllable to its first letter, so a dead reading on one character lets an
 # abbreviation reach words no modern reading can type: `fff` used to offer
 # 不仅仅 (bù jǐn jǐn) because the base carries 仅 fù. Each entry is
@@ -83,14 +83,14 @@ ABBREV_PROBES = [
     ("ffff", ["反反覆覆"],
               ["不仅仅", "服不服", "不复发", "不悱不发", "烦不烦", "放不放"]),
     ("fff", ["凤飞飞"], ["不仅仅", "服不服", "不复发"]),
-    ("bjj", ["不仅仅"], []),           # 正读 bù jǐn jǐn 必须还在
-    ("rr", ["让人"], ["女人", "女儿"]),   # 女 rǔ 删除后 r-r 拼不出「女人」
-    ("sbsb", ["是不是"], ["身份识别"]),    # 份 bīn 删除后 s-b-s-b 拼不出「身份识别」
+    ("bjj", ["不仅仅"], []),           # the standard bù jǐn jǐn must still be there
+    ("rr", ["让人"], ["女人", "女儿"]),   # with 女 rǔ deleted, r-r cannot spell it
+    ("sbsb", ["是不是"], ["身份识别"]),    # with 份 bīn deleted, s-b-s-b cannot spell it
 ]
 
 # The opposite gap: readings the traditional base never carried, so the modern
-# standard spelling typed nothing at all (底本只有旧读 体癣 ti xian，规范 ti xuan
-# 打不出来). pinyin_fixes.txt `add` rows are the fix; these probes are the proof
+# standard spelling typed nothing at all (the base has only the archaic 体癣 ti
+# xian, so the standard ti xuan was untypeable). pinyin_fixes.txt `add` rows are the fix; these probes are the proof
 # that the spelling now reaches the word -- via the added word row or by
 # composing from the added single-character row. Keys are chosen where the
 # modern spelling has no high-frequency rival: 崤 xiao is in the dictionary now,
@@ -206,10 +206,10 @@ def main():
             if missing or leaked:
                 detail = []
                 if missing:
-                    detail.append(f"期望 {missing} 不在首页")
+                    detail.append(f"expected {missing} absent from page one")
                 if leaked:
-                    detail.append(f"死读音候选 {leaked} 回来了")
-                failures += fail(f"{keys} -> {page}，" + "；".join(detail))
+                    detail.append(f"dead-reading candidates {leaked} are back")
+                failures += fail(f"{keys} -> {page}: " + "; ".join(detail))
             else:
                 print(f"OK   {keys} -> {page[0] if page else '(none)'}")
         for keys, word in ADD_PROBES:
@@ -217,7 +217,7 @@ def main():
             if word in page:
                 print(f"OK   {keys} -> {word}")
             else:
-                failures += fail(f"{keys} -> {page}，首页没有 {word}")
+                failures += fail(f"{keys} -> {page}, {word} not on page one")
     finally:
         if args.keep:
             print(f"deployment kept at {root}")

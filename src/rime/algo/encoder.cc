@@ -5,7 +5,7 @@
 // 2013-07-17 GONG Chen <chen.sst@gmail.com>
 //
 #include <rime/string_utils.hpp>
-// term-ime: encoder/exclude_patterns comes from the schema (PCRE upstream);
+// fork: encoder/exclude_patterns comes from the schema (PCRE upstream);
 // compile through the shared translation inside a try/catch so an
 // untranslatable pattern is skipped with a log line rather than thrown out of
 // LoadSettings. See rime/pcre_translator.hpp.

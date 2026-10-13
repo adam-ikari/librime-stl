@@ -1,40 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""单字读音审计：找出会污染首字母简拼的死读音。
+"""Single-character reading audit: find the dead readings that hijack
+initial-only (abbreviated) input.
 
-底本（繁体快照）按《汉语大字典》式宽表给单字收了大量古音/通假读法。schema 的
-`abbrev/^([a-z]).+$/$1/` 把每个音节缩成首字母，于是「仅」的 fu 一读让 `fff` 能
-拼出不可能用现代读音打出来的「不仅仅」。本工具把每条 (字, 读音) 放到三个独立
-信号下打分，按字频排序输出待甄别清单：
+The base snapshot ships a 《汉语大字典》-style broad reading table per character,
+full of archaic and loan readings. The schema's
+`abbrev/^([a-z]).+$/$1/` collapses every syllable to its initial, so the `fu`
+reading of 仅 lets `fff` spell 不仅仅 -- a word no modern reading could type.
+This tool scores each (character, reading) against three independent signals and
+prints the shortlist, ordered by character frequency:
 
-  phrase   pypinyin 现代词组表（47111 条）里，该字被配成这一音节的次数。
-           这是「这个读音今天还能组出词吗」的证据；为零说明只剩单字自己用。
-  word     本仓词库的多字词条把该字配成这一音节的次数。有实配的文言读法由词组行
-           自己带着音节串，删单字行不影响那个词，所以这一列只作参考。
-  norm     该字在 pypinyin 单字宽表（汉典式）里有这一读 —— 有记录不等于现代规范。
+  phrase   times pypinyin's modern phrase table (47111 entries) pairs this
+           character with this syllable -- evidence that the reading still
+           composes words today; zero means only the character itself uses it.
+  word     times this repo's own multi-character entries pair the character with
+           this syllable. A literary reading with real support carries its own
+           syllable string on the phrase row, so deleting the single-character
+           row does not affect that word; this column is reference only.
+  norm     whether pypinyin's broad per-character table (Handian-style) records
+           this reading at all -- a record is not a modern standard.
 
-判定线：该读音与字的**主导读音**（宽表首项，按常用度排）声母不同，且在 pypinyin
-现代词组表与本仓词库的多字词条里**双零实配**——今天没有任何词把它配成这个音。
-低频字默认不进清单（`--min-freq`），生僻字的古读是用户真会打的，简拼污染不到。
-宽表（attested/error 列）只说明「古书有这个读」，不作为保留理由：底本正是靠
-这一列把「仅 fu」塞进来的。
+The cut line: the reading's initial differs from the character's **dominant**
+reading (first item of the broad table, ranked by currency) AND the reading has
+zero real support in both the pypinyin phrase table and this repo's multi-char
+entries -- nothing today pairs the character with that sound. Low-frequency
+characters stay out of the list by default (`--min-freq`): users really do type
+the archaic readings of rare characters, and abbreviation cannot pollute what
+they type. The broad table (the attested/error column) only says "some old book
+has this reading"; it is not a reason to keep one -- that column is exactly how
+the base smuggled in 仅 fu.
 
-只读，不改数据；`--emit-del` 打印 pinyin_fixes.txt 的 del 行，供人工逐条核对后粘贴。
-pypinyin 是开发期 oracle，`make check` / `make smoke` 都不需要它。
+Read-only, writes no data; `--emit-del` prints pinyin_fixes.txt `del` lines to be
+checked against a dictionary by hand and pasted. pypinyin is a development-time
+oracle: neither `make check` nor `make smoke` needs it.
 
-另两种读数（补读轴，输出的是 add）：
+Two further modes (the add-readings axis, which emits `add`):
 
-  --words      词组行只有旧读。逐条检查多字词条的每个 (字, 音节)，宽表没有这一读
-              的就是底本音节串错误（蚌埠市 bang fu shi 那一类）；但「旧读还在」不
-              等于「打不出词」，底本对多数新旧两读的词各留一行。`--confirmed-only`
-              只留下第三种：现代规范读音在该词现有各行里根本打不出来。
-  --coverage   单字缺规范读导致的组词盲区。取 essay 里词库没有的词（引擎靠单字行
-              组合词组，主词库故意不收能组出的词），只要该字没有这一读的单字行，
-              ScriptEncoder 就组不出它。按「被卡词的 essay 词频之和」排序，
-              `--min-weight` 设下限。
+  --words      phrase rows carrying only an archaic reading. Checks every
+               (character, syllable) of each multi-character entry; one absent
+               from the broad table is a bad syllable string in the base (the
+               蚌埠市 bang fu shi kind). But "the old reading survives" is not
+               "the word cannot be typed" -- the base keeps a row per reading for
+               most words. `--confirmed-only` keeps only the third case: the
+               modern standard reading cannot be typed by any row the word has.
+  --coverage   composition blind spots from a character missing its standard
+               reading. Takes essay words the dictionary does not have (the
+               engine composes phrases from single-character rows, so the main
+               dictionary deliberately omits anything composable): without a
+               single-character row for that reading, ScriptEncoder cannot build
+               the word. Ranked by the summed essay frequency of the blocked
+               words, floored by `--min-weight`.
 
-两个轴都可 `--emit-fix` 直接出 add 行（--words 出词组行，--coverage 出单字行）；
-这只是草稿，pypinyin 按上下文猜的读音（精雕细琢它给 zuo）必须人工查字典否掉。
+Both axes take `--emit-fix` to print `add` lines directly (--words for phrase
+rows, --coverage for single characters); that is a draft only -- pypinyin's
+context guesses (it says zuo for 精雕细琢) have to be vetoed against a dictionary.
 
 Usage:
     python3 audit_readings.py [--min-freq 1000] [--limit 400] [--emit-del]
@@ -61,8 +80,10 @@ DICT = HERE.parent / "luna_pinyin.dict.yaml"
 ESSAY = HERE.parent / "essay.txt"
 FIXES = HERE / "pinyin_fixes.txt"
 
-# 叹词/语气词：读音全靠约定俗成，宽表与现代词组表都收不全，按「无记录即错音」
-# 判会把「啊 o」「呵 ó」「噢 ò」这类真读法一起打死。这一类不进自动清单。
+# Interjections and sentence particles: their readings are pure convention, so
+# neither the broad table nor the modern phrase table records them all. Judging
+# "absent means wrong" would kill real readings such as 啊 o / 呵 ó / 噢 ò along
+# with the errors. This class never enters the automatic list.
 INTERJECTIONS = set("啊呵噢哦喔嗯咯呢吗吧呀哈咦哎唉嘻哼呸呗嘛哇耶咩哟唷嘞哒")
 
 
@@ -93,7 +114,8 @@ def load_essay_freq(path):
 
 
 def load_fixes_adds(path):
-    """pinyin_fixes.txt 里显式补过的读音：审计不得建议删掉它们。"""
+    """The readings this repo added explicitly in pinyin_fixes.txt: the audit
+    must never propose deleting them."""
     adds = set()
     if not path.exists():
         return adds
@@ -108,15 +130,20 @@ def load_fixes_adds(path):
 
 
 def audit_words(args, freq, char_norms, char_syllables, words):
-    """词组行读音审计：宽表没有这一读的词组行，逐条给证据。
+    """Phrase-row reading audit: for every row whose syllable the broad table
+    does not record, print the evidence.
 
-    宽表缺记录有两成因：底本这一行真错，或 pypinyin 表本身不全；而「旧读还在」也
-    不等于「打不出来」——底本对多数新旧两读的词各留一行（摇曳 yao ye / yao yi 都
-    在）。所以真正的缺陷只有一种：现代规范读音在本仓这个词的现有各行里根本打不出
-    来。只有这种才值得动数据，其余一律不改。
-      宽表   pypinyin 单字宽表里该字的全部读音
-      单字   本仓词库该字的单字行读音（与词组行自相矛盾即错）
-      词表   pypinyin 现代词组表对这个词的读音
+    Two causes produce a missing broad-table record: the base row is genuinely
+    wrong, or pypinyin's own table is incomplete. And "the old reading survives"
+    still does not mean "untypeable" -- the base keeps one row per reading for
+    most such words (摇曳 has both yao ye and yao yi). So there is exactly one
+    real defect: the modern standard reading cannot be typed by any row this repo
+    has for the word. Only that justifies touching the data; everything else
+    stays.
+      broad    every reading pypinyin's per-character table lists for the character
+      single   the character's single-character rows in this repo's dictionary
+               (a phrase row contradicting them is the error)
+      phrase   pypinyin's modern phrase table reading for this word
     """
     readings = collections.defaultdict(set)
     for word, syllables in words:
@@ -175,11 +202,15 @@ def audit_words(args, freq, char_norms, char_syllables, words):
 
 
 def audit_coverage(args, freq, dict_words, char_norms, char_syllables):
-    """essay 里词库没有的高频词，因单字缺读音而组不出来的盲区。
+    """Composition blind spots: frequent essay words the dictionary cannot build
+    because a character is missing a reading.
 
-    pypinyin 认不出的字（生僻扩展码位）会把字本身吐回来，这类不算证据。剩下的缺口
-    按宽表分两档：宽表有此读 = 词库漏收，`add` 有据；宽表无此读 = pypinyin 按上下
-    文猜的读音，可能是它自己错（精雕细琢它给 zuo，规范是 zhuo），只能人工查字典。
+    For characters pypinyin does not know (rare extended code points) it echoes
+    the character back; that is not evidence. The remaining gaps split in two by
+    the broad table: recorded there means the dictionary omits it, so `add` is
+    attested; absent means a context guess by pypinyin, possibly its own error (it
+    says zuo where the standard is zhuo), which only a hand dictionary check can
+    settle.
     """
     blocked = collections.Counter()
     owners = collections.defaultdict(list)
@@ -193,7 +224,7 @@ def audit_coverage(args, freq, dict_words, char_norms, char_syllables):
             continue
         for char, syllable in zip(word, reading):
             if not syllable.isascii():
-                continue            # pypinyin 不认识这个字，不是词库的错
+                continue            # pypinyin does not know this character; not the dictionary's fault
             if syllable not in char_syllables.get(char, ()):
                 blocked[(char, syllable)] += 1
                 weight[(char, syllable)] += f
@@ -282,9 +313,12 @@ def main():
             phrase_counter[(char, syllable)] += 1
 
     def dominant_of(char, syllables):
-        """该字的主导读音：先按语料实配（词库词组 + 现代词组），再退回宽表首位。
+        """The character's dominant reading: ranked by corpus support (this
+        dictionary's phrases + the modern phrase table), falling back to
+        the broad table's first entry.
 
-        宽表首位不可靠 —— 「份」的第一项是古读 bìn，照它判会把正读 fen 当成毒。
+        That first entry is not trustworthy -- for the character 份 it is
+        the archaic bin, which would brand the correct fen as the poison.
         """
         return max(syllables,
                    key=lambda s: (word_support[(char, s)] + phrase_counter[(char, s)],
@@ -301,14 +335,14 @@ def main():
             continue
         for syllable in sorted(syllables):
             if (char, syllable) in adds:
-                continue            # 本轮显式补过的读音，不动
+                continue            # added explicitly in this round; leave it alone
             if syllable[0] == dom[0]:
-                continue            # 与主导读音同声母，简拼不会跑偏
+                continue            # same initial as the dominant reading; abbreviation cannot drift
             if phrase_counter[(char, syllable)] or word_support[(char, syllable)]:
-                continue            # 有词组真把它配成这一音，删了打死组词
+                continue            # phrases really do pair it with this sound; deleting it kills composition
             norm = "attested" if syllable in char_norms[char] else "error"
             if norm == "attested" and not args.include_attested:
-                continue            # 有文献记录的读法，留给人工判定
+                continue            # a reading with literary attestation; leave it to hand review
             rows.append((f, char, syllable, norm, dom))
     rows.sort(key=lambda r: -r[0])
 

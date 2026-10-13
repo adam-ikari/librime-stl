@@ -1,13 +1,15 @@
 #!/bin/sh
-# 交叉编译 Android 输入法引擎库：纯 C API 的 librime.so。
+# Cross-compile the Android engine library: librime.so with a plain C API.
 #
-# 词库工具链（dict/tools/）不参与 —— 这里只编引擎，运行时词库数据（dict/）
-# 由消费方打包（见 dict/README.md）。opencc 传 OPENCC_BUILD_DATA=OFF 和
-# OPENCC_BUILD_TOOLS=OFF：生成数据需要 host Python + 现编译的 host
-# opencc_dict，交叉编译下直接 Exec format error，详见 deps/opencc/UPSTREAM.md。
+# The dictionary toolchain (dict/tools/) is not involved -- this builds the
+# engine only; the runtime dictionary data (dict/) is packaged by the consumer
+# (see dict/README.md). opencc gets OPENCC_BUILD_DATA=OFF and
+# OPENCC_BUILD_TOOLS=OFF: generating its data needs a host Python plus a
+# freshly built host opencc_dict, which under cross compilation dies with
+# Exec format error. See deps/opencc/UPSTREAM.md.
 #
-# 用法: NDK=/path/to/android-ndk-r28 ./build-android.sh [arm64-v8a|armeabi-v7a|x86_64]
-# 产物: build/android-<abi>/librime.so
+# Usage: NDK=/path/to/android-ndk-r28 ./build-android.sh [arm64-v8a|armeabi-v7a|x86_64]
+# Output: build/android-<abi>/librime.so
 set -eu
 
 ndk=${NDK:?set NDK to the Android NDK root, e.g. NDK=/opt/android-ndk-r28}

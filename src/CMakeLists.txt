@@ -176,7 +176,7 @@ else()
     ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
   install(TARGETS rime-static DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
 endif()
-# term-ime: upstream cbf363be passes RIME_EXTRA_MODULES (a Boost.PP sequence)
+# fork: upstream cbf363be passes RIME_EXTRA_MODULES (a Boost.PP sequence)
 # as a compile definition and expands it with Boost.Preprocessor in setup.cc /
 # rime_api.cc; this fork drops Boost entirely, so the identical expansions are
 # written into a generated header at configure time instead.

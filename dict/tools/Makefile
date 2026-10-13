@@ -1,23 +1,29 @@
-# 词库生成工具。全部显式调用，不接进 CMake —— 接进 CMake 就把「生成词库」
-# 和「配置引擎」重新绑回同一张编译图，而 librime 运行时只读 dict/ 里的数据。
+# Dictionary generation tools. Everything is invoked explicitly and never wired
+# into CMake -- wiring it in would bind "generate the dictionary" and
+# "configure the engine" back into one build graph, while librime at runtime
+# only reads the data in dict/.
 #
-#   make toolchain        构建 opencc 的生成器（host Python + host opencc_dict）
-#   make essay            重新生成 essay.txt
-#   make dict             重新生成 luna_pinyin.dict.yaml
-#   make ocd2             重新生成 opencc 二进制字形表
-#   make all              以上三个产物
-#   make check            重新生成并与 dict/ 已提交内容逐字节比对
-#   make smoke            用真实引擎冒烟：把 dict/ 部署出来跑候选断言
-#   make audit            单字死读音审计：污染首字母简拼的读音（只读）
-#   make audit-words      词组行只有旧读、现代读打不出来（只读）
-#   make audit-coverage   单字漏收规范读造成的组词盲区（只读）
-#   make package          打成发布 tarball
+#   make toolchain        build opencc's generators (host Python + host opencc_dict)
+#   make essay            regenerate essay.txt
+#   make dict             regenerate luna_pinyin.dict.yaml
+#   make ocd2             regenerate the opencc binary phrase tables
+#   make all              the three products above
+#   make check            regenerate, then compare byte-for-byte with what dict/ commits
+#   make smoke            real-engine smoke test: deploy dict/ and assert candidates
+#   make audit            dead single-character readings that hijack initial-only input (read-only)
+#   make audit-words      word rows with only an archaic reading, untypeable in modern pinyin (read-only)
+#   make audit-coverage   composition blind spots from missing standard readings (read-only)
+#   make package          build the release tarball
 #
-# check 是产物一致性的验收：diff 非空就是脚本错了，不许改数据去「对齐」。
-# smoke 是可用性的验收：check 全绿也可能引擎读不动这些数据（无调注音、
-# schema 模式编译失败、词条被表构建器拒绝），只有真部署一遍才算证明。
-# audit 是校准用的读数工具，需要开发期 oracle（pip install pypinyin）；
-# 它不写数据，产出的人工核对结果落成 pinyin_fixes.txt 的 del 行。
+# check is the acceptance gate for product consistency: a non-empty diff means
+# a script is wrong, and the fix is never to edit the data to "align" it.
+# smoke is the acceptance gate for usability: check can be all green while the
+# engine still cannot read these files (toneless syllables, a schema pattern
+# that fails to compile, entries the table builder rejects) -- only a real
+# deployment proves otherwise.
+# audit is the calibration reader. It needs a development-time oracle
+# (pip install pypinyin); it writes no data, and what it prints, once checked
+# by hand, becomes del/add lines in pinyin_fixes.txt.
 
 TOOLS := $(CURDIR)
 DICT  := $(abspath $(TOOLS)/..)
@@ -102,8 +108,10 @@ smoke:
 audit:
 	$(PY) audit_readings.py --min-freq $${MIN_FREQ:-1000} $(if $(EMIT),--emit-del,)
 
-# 另两个校准轴：词组行只有旧读（现代规范读音打不出来），以及单字漏收规范读
-# 导致的组词盲区。EMIT=1 时输出可直接粘贴的 add 行（仍须逐条核对字典）。
+# The other two calibration axes: word rows that carry only an archaic reading
+# (the modern standard reading cannot type them), and composition blind spots
+# from a single character missing its standard reading. With EMIT=1 the output
+# is paste-ready add lines -- still to be checked against a dictionary by hand.
 audit-words:
 	$(PY) audit_readings.py --words --confirmed-only \
 	  $(if $(EMIT),--emit-fix,) --limit $${LIMIT:-60}

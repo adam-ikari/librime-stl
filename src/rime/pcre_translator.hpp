@@ -1,5 +1,5 @@
 //
-// term-ime: PCRE -> ECMAScript pattern translation shared by every runtime
+// fork: PCRE -> ECMAScript pattern translation shared by every runtime
 // regex entry point.
 //
 // Upstream librime compiles patterns with boost::regex (PCRE). This fork uses

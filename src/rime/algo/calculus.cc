@@ -6,7 +6,7 @@
 //
 #include <rime/string_utils.hpp>
 #include <utf8.h>
-// term-ime: the algebra rules go through the same PCRE->ECMAScript
+// fork: the algebra rules go through the same PCRE->ECMAScript
 // translation as every other runtime pattern entry point; see
 // rime/pcre_translator.hpp.
 #include <rime/pcre_translator.hpp>
