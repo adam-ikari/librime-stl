@@ -17,3 +17,9 @@ opencc = 556ed22496d650bd0b13b6c163be9814637970ae
 # 底本从 git 历史取（git show <SHA>:dict/luna_pinyin.dict.yaml），
 # 所以重新生成 luna_pinyin.dict.yaml 需要完整历史，浅克隆取不到。
 luna-pinyin-base = 64eda4c72b79d3f92a8a03b6c892a1c302fb6c52
+
+# emoji: 绘文字词典（opencc/emoji.json、emoji_word.txt、emoji_category.txt）的来源，
+# 上游 rime/rime-emoji 的 Emoji-14.0 分支顶端 771d613b（LGPL-3.0）。主分支 master 的
+# 那份只有 4668 行、覆盖更小，所以钉的是这个分支的提交，不是默认分支。这三个文件原样
+# vendor —— rebuild_ocd2.sh 只拷不生成，改这里等于改 emoji 的覆盖范围，必须跑 make check。
+emoji-base = 771d613b6ad7bc480b56fa14a6bbdd36217b092d

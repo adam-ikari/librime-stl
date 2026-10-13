@@ -11,6 +11,7 @@
 | `luna_pinyin.dict.yaml` | 词库本体。67051 条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、删污染简拼的死读音、补现代规范读音）。同词多读音保留为多行。 |
 | `essay.txt` | 词频表，437873 条带权重词条（2026-10 升级到 rime-essay 官方最新版 442688 条，再全部转简体去重）。词库开了 `use_preset_vocabulary`，靠它加载词频 —— 缺了它候选会退化成按 Unicode 排序的单字（生僻字排在常用字前面），词组也出不来。 |
 | `opencc/` | 简繁与字形转换数据，供 schema 的 simplifier 用：`t2s_full.json`（简体输出主路径）、`t2hk.json` / `t2tw.json`（港/臺字形）。 |
+| `opencc/emoji.json`、`opencc/emoji_word.txt`、`opencc/emoji_category.txt` | 绘文字扩展词典（7218 + 212 行），rime-emoji 的逐字副本。默认关，`Ctrl+Shift+6` 开 —— 见下面「emoji 是一份可开关的滤镜词典，不是词库词条」。 |
 
 三个文件是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`，
 简体方案再挂 opencc 转换。改其中任何一个都要另两个配套。
@@ -24,8 +25,10 @@
 ## opencc/ 必须是自足的
 
 librime 把 `opencc_config` 解析成 `<共享数据目录>/opencc/<配置文件>`
-（`src/rime/gear/simplifier.cc`）；文件找不到时 `SimplifierComponent::Create`
-返回 `nullptr` —— filter 静默不存在，候选退成未转换的字形，部署不报错、日志之外没有任何痕迹。
+（`src/rime/gear/simplifier.cc:183-192`）；文件找不到时 `SimplifierComponent::Create`
+**照样返回 filter**（只有 `.ini` 老配置才返回 `nullptr`），要等到第一次真正转换才在
+`Opencc::Initialize` 记一条 `opencc config not found` 的 E 行
+（`src/rime/gear/opencc.cc:33`），候选原样通过 —— 部署不失败，用户只看到字形没转。
 
 所以 `dict/opencc/` 里的每个 `.json` 所引用的 `.ocd2` / `.txt` 都必须和它一起提交，
 不能靠 opencc 安装前缀兜底：`libopencc.a` 里的 `PKGDATADIR` 是编译期烧进去的绝对路径，
@@ -47,13 +50,50 @@ simplifier 退化为幂等护栏。
 
 `LICENSE` 按文件分别标注授权，跟随各自上游：`luna_pinyin.dict.yaml` 派生自
 [rime/rime-luna-pinyin](https://github.com/rime/rime-luna-pinyin)，`essay.txt` 派生自
-[rime/rime-essay](https://github.com/rime/rime-essay)，两者均为 **LGPL-3.0**；
+[rime/rime-essay](https://github.com/rime/rime-essay)，`opencc/emoji*` 逐字取自
+[rime/rime-emoji](https://github.com/rime/rime-emoji)，三者均为 **LGPL-3.0**；
 `opencc/` 的 `t2s.json`/`t2hk.json`/`t2tw.json` 与 `*.ocd2` 来自
 [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC)，为 **Apache-2.0**；而
 `opencc/t2s_full.json` 与 `variants*.txt` 是本项目原创转换表，**MIT**。本项目对这些
 数据只做生成性修改（转简体、去重、升级版本），派生作品的许可证跟随上游 —— 整个
 `dict/` 不是 MIT，也不是任何单一授权。完整条款与打包分发义务（可随其他程序分发，
 含 LGPL 的 notice/源码义务）见 [`LICENSE`](LICENSE) 与 [`../licenses/`](../licenses/)。
+
+## emoji 是一份可开关的滤镜词典，不是词库词条
+
+`opencc/emoji_word.txt`（7218 行）与 `opencc/emoji_category.txt`（212 行）是
+`词\t词 emoji…` 的 opencc text 词典，逐字 vendor 自 rime-emoji 的 `Emoji-14.0` 分支
+（`tools/sources.lock` 的 `emoji-base`；主分支那份覆盖更小）。它们**不进**
+`luna_pinyin.dict.yaml`，也不参与 `convert_dict.py` 的生成链 —— `rebuild_ocd2.sh`
+只拷贝、`make check` 只比对。
+
+运行时接线在 `../data/minimal/emoji_suggestion.yaml`，由 `luna_pinyin.schema.yaml`
+一行 `__patch: emoji_suggestion:/patch` 挂上：`engine/filters` 前置一个
+`simplifier@emoji_suggestion`，它把每个候选词交给 opencc，命中的 emoji 作为
+`ShadowCandidate` 追加在词旁边（`tips: all` 把原词留在 comment）。开关是
+`emoji_suggestion` 这个 option：**默认关**（`reset: 0`），`Ctrl+Shift+6` 切换。
+
+为什么不做成「独立 `.dict.yaml` + 前缀触发」：librime 里 translator 没有 option
+概念，只能按 tag 门控（`src/rime/gear/script_translator.cc:218`、
+`table_translator.cc:246`），tag 来自 `recognizer/patterns` 加 `affix_segmentor`
+的前缀 —— 那是 `C:`/`P:` 那种「每次显式触发」，不是「一键开关」；`translator/packs`
+与主词库共用同一个 prism（`src/rime/dict/dict_compiler.cc:152-205`），既不能新增
+音节也不能单独关掉。运行时能关的只有 option 门控的组件，候选处理路径上就是
+`simplifier`（`src/rime/gear/simplifier.cc:86`）。
+
+有意的取舍：`default.yaml` 的 `switcher/save_options` 不含 `emoji_suggestion`，所以
+这个开关**不跨方案重载持久**（`src/rime/switcher.cc:280` 只从 default 配置读
+save_options，改那里会多一处与上游的差异）。换字面意思：切方案或重进方案后 emoji
+回到默认关，再按一次 `Ctrl+Shift+6` 即可。
+
+`make -C tools smoke` 的 `EMOJI_PROBES` 两侧都断言：关时首页不许出现 emoji，开时
+`kaixin` 必须出 😁 —— 顺带把 `<部署目录>/opencc/` 的部署补上了，此前 smoke 从不
+部署 opencc 数据，整条 simplifier 路径没有被任何门走过。
+
+`make -C tools package` 的 tarball 是 rime-data（词库 + `opencc/`，含 emoji 三件），
+不含 schema。消费方拿到数据后要在自己的方案里挂同样的两样东西：
+`simplifier@emoji_suggestion` 进 `engine/filters`、`emoji_suggestion` 进 `switches`
+并可绑一个键 —— 照 `../data/minimal/emoji_suggestion.yaml` 抄即可。
 
 ## 为什么并进来
 
@@ -122,11 +162,13 @@ make -C tools package          # 打成 term-ime-dict-<VERSION>.tar.gz
 
 五条契约管「怎么生成」，另有一道门管「生成的东西引擎读不读得动」：
 `make -C tools smoke` 把本目录按安装布局（引擎数据取 `data/minimal/`，词库与
-essay 取本目录覆盖同名 minimal 文件）装进临时部署，用 `rime_console` 真编译
-一遍，断言三类事 —— 部署日志零错误行（模式编译失败、词条被表构建器拒绝这类
+essay 取本目录覆盖同名 minimal 文件，`opencc/` 取本目录装进
+`<部署目录>/opencc/`）装进临时部署，用 `rime_console` 真编译
+一遍，断言四类事 —— 部署日志零错误行（模式编译失败、词条被表构建器拒绝这类
 问题只在真部署里现形，逐字节比对看不见）；几条探针能提交出预期文字（含一个
 多音字的两个读音）；简拼首页候选既不出现只靠死读音才拼得出的词，也必须出现
-现代读音应有的词（`ABBREV_PROBES` 守删除那一半，`ADD_PROBES` 守补读这一半）。
+现代读音应有的词（`ABBREV_PROBES` 守删除那一半，`ADD_PROBES` 守补读这一半）；
+emoji 滤镜关时无痕、开时出字（`EMOJI_PROBES`）。
 check 证明「与已提交内容一致」，smoke 证明「引擎用得动」，两道门缺一不可。
 
 **关于文言读音**：底本里的文言/古读（乡 yuān、于 xū、兒 ní 等）属于**扩展词库
@@ -139,7 +181,7 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 `translator/dictionary` 只支持单个词典，挂扩展词典需经 `translator/packs`
 或独立 schema。
 
-`tools/sources.lock` 钉住三个输入坐标。`luna_pinyin` 的底本不是上游某个 release，
+`tools/sources.lock` 钉住四个输入坐标。`luna_pinyin` 的底本不是上游某个 release，
 而是本仓 `64eda4c7` 里那份繁体快照（上游此后加了读音权重、补了日文国字与注音
 索引，本仓又剪过 115 行），所以取底本要读 git 历史，浅克隆取不到。
 
@@ -157,6 +199,7 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 | `dict-2026.10.09` | `v1.1.8-rime-stack` | 简繁数据闭包（`t2hk`/`t2tw` + `HK`/`TWVariants.ocd2`）与 `use_preset_vocabulary` 的词频依赖都从这次起 |
 | `dict-2026.10.10` | `v1.1.8-rime-stack` | 纯数据修订：`luna_pinyin.dict.yaml` 错音订正与单字补读音（`tools/pinyin_fixes.txt`），无新引擎依赖 |
 | `dict-2026.10.11` | `v1.1.8-rime-stack` | 纯数据修订：清理底本为超高频虚词保留的文言读音行（36 条 `del`），无新引擎依赖 |
+| `dict-2026.10.13` | `v1.1.8-rime-stack` | 新增 emoji 扩展词典（`opencc/emoji*` + `data/minimal/emoji_suggestion.yaml` 接线，默认关）。simplifier 的 option 门控与 `__patch` 都是 librime 既有能力，无新引擎依赖 |
 
 （`v1.1.9-rime-stack` 之后的引擎变更——上游 67 提交合并、PCRE 翻译层——属引擎侧，
 不改变词库的最低 stack 要求。）

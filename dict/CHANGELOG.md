@@ -2,6 +2,32 @@
 
 词库与 librime 补丁同仓、共用一个 tag —— 版本号只在本仓的 tag 上。
 
+## dict-2026.10.13
+
+新增 emoji 扩展词典，可开关（纯数据 + 配置接线，不涉引擎）。
+
+- **`opencc/emoji.json` / `emoji_word.txt` / `emoji_category.txt`**：绘文字词典，
+  逐字 vendor 自 [rime/rime-emoji](https://github.com/rime/rime-emoji) 的
+  `Emoji-14.0` 分支 `771d613b`（**LGPL-3.0**，`tools/sources.lock` 新增 `emoji-base`
+  钉这个 commit）。7218 + 212 行，无重复键；不进 `luna_pinyin.dict.yaml`，不参与
+  `convert_dict.py` 生成链 —— `rebuild_ocd2.sh` 只拷贝，`make check` 照样逐字节比对。
+- **默认关，`Ctrl+Shift+6` 开**。接线收在 `../data/minimal/emoji_suggestion.yaml`
+  一份 patch 里（上游同名文件改两处：`reset: 1 → 0`、加绑键），
+  `luna_pinyin.schema.yaml` 只多一行 `__patch: emoji_suggestion:/patch`。
+  机制是 `engine/filters` 上的 `simplifier@emoji_suggestion` 按 option 门控，
+  命中词把 emoji 作为 `ShadowCandidate` 追加、原词留在 comment（`tips: all`）。
+  为什么不用独立 `.dict.yaml` + 前缀触发、也不用 `translator/packs`：见
+  [`README.md`](README.md)「emoji 是一份可开关的滤镜词典，不是词库词条」。
+- **有意取舍**：不改 `default.yaml` 的 `switcher/save_options`，开关不跨方案重载持久。
+- **smoke 门补了两件事**：`build_deployment()` 现在把 `opencc/` 装进部署目录 ——
+  此前它从不部署 opencc 数据，schema 里所有 simplifier 在这道门上都是空转，整条
+  转换路径没有门走过；`EMOJI_PROBES` 断言开关两侧 —— 关时首页不得出现 emoji，
+  开时 `kaixin` 必须出 😁。绑键能否穿过 `import_preset: default` 的列表合并，
+  由这道门判定，不靠猜。
+- 订正 `README.md` 一处旧错：opencc 配置文件缺失时 `SimplifierComponent::Create`
+  并不返回 `nullptr`，filter 照样存在，直到第一次转换才记一条
+  `opencc config not found` 的 E 行、候选原样通过。闭包断言的结论不变。
+
 ## dict-2026.10.12
 
 清理底本给高频单字收的死读音，修首字母简拼（纯数据，不涉引擎）。

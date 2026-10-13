@@ -35,4 +35,10 @@ for f in t2s_full.json variants.txt variants_ext.txt variants_jp.txt; do
 	cp "$dict/$f" "$out/$f"
 done
 
+# The emoji dictionary is vendored verbatim from rime/rime-emoji at the
+# emoji-base pin in sources.lock -- same reason: checked, never written.
+for f in emoji.json emoji_word.txt emoji_category.txt; do
+	cp "$dict/$f" "$out/$f"
+done
+
 echo "opencc data -> $out"

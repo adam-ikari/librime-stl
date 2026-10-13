@@ -24,6 +24,11 @@ Four kinds of check:
      under an archaic reading must reach it (see ADD_PROBES) -- the other half
      of the same calibration: deletions on one side, added readings on the other.
 
+A fifth one covers the opencc side of the shipment (see EMOJI_PROBES): the
+simplifier filters read dict/opencc/ out of <shared_data_dir>/opencc/, which is
+why build_deployment() deploys it -- without that directory every simplifier in
+the schema degrades to a silent no-op.
+
 Usage:
     python3 smoke.py [--rime-console PATH] [--keep]
 
@@ -45,6 +50,7 @@ DEFAULT_CONSOLE = REPO_ROOT / "build" / "bin" / "rime_console"
 # engine data that luna_pinyin.schema.yaml pulls in
 ENGINE_DATA = [
     "luna_pinyin.schema.yaml",
+    "emoji_suggestion.yaml",
     "cangjie5.schema.yaml",
     "cangjie5.dict.yaml",
     "default.yaml",
@@ -108,6 +114,23 @@ ADD_PROBES = [
     ("jianwei", "犍为"),
 ]
 
+# Emoji are a runtime filter over the candidates -- data/minimal/
+# emoji_suggestion.yaml hangs a simplifier on engine/filters and binds
+# Ctrl+Shift+6 to its option; they are not dictionary entries. Both sides of
+# the switch have to be asserted: off (the shipped default) no candidate on
+# page one may carry an emoji, otherwise a build that quietly turned them on
+# passes; on, the word's emoji from the vendored rime-emoji table must appear.
+# The toggle travels in the same input line, which rime_console parses as a
+# key sequence (tools/rime_console.cc:71-79).
+EMOJI_TOGGLE = "{Control+Shift+6}"
+EMOJI_PROBES = [
+    ("kaixin", "😁"),
+    ("zaijian", "👋🏻"),
+]
+
+# pictographs and symbols: the ranges the emoji data draws from
+EMOJI_CHAR = re.compile(r"[\U0001F000-\U0001FAFF\U00002600-\U000027BF]")
+
 
 def fail(msg):
     print(f"FAIL {msg}")
@@ -126,6 +149,13 @@ def build_deployment(root):
         if not src.exists():
             return f"missing dictionary data: {src}"
         shutil.copy(src, root / name)
+    # Simplifier::Create resolves opencc_config out of <shared_data_dir>/opencc/
+    # (src/rime/gear/simplifier.cc:183-192), so the conversion tables have to be
+    # deployed for any simplifier@... in a schema to be more than a no-op.
+    src = REPO_ROOT / "dict" / "opencc"
+    if not src.is_dir():
+        return f"missing opencc data: {src}"
+    shutil.copytree(src, root / "opencc")
     (root / "shared.yaml").write_text(
         f"shared_data_dir: {root}\n"
         f"user_data_dir: {root / 'user'}\n"
@@ -218,6 +248,18 @@ def main():
                 print(f"OK   {keys} -> {word}")
             else:
                 failures += fail(f"{keys} -> {page}, {word} not on page one")
+        for keys, emoji in EMOJI_PROBES:
+            off = probe_candidates(console, root, keys)
+            shown = [c for c in off if EMOJI_CHAR.search(c)]
+            on = probe_candidates(console, root, EMOJI_TOGGLE + keys)
+            if shown:
+                failures += fail(
+                    f"{keys} -> {shown}: emoji on page one with the switch off")
+            elif emoji not in on:
+                failures += fail(
+                    f"{EMOJI_TOGGLE}{keys} -> {on}, {emoji} not on page one")
+            else:
+                print(f"OK   {keys} silent, {EMOJI_TOGGLE}{keys} -> {emoji}")
     finally:
         if args.keep:
             print(f"deployment kept at {root}")

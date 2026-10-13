@@ -55,6 +55,9 @@ jobs:
             share/term-ime/rime-data/opencc/TSCharacters.ocd2 \
             share/term-ime/rime-data/opencc/HKVariants.ocd2 \
             share/term-ime/rime-data/opencc/TWVariants.ocd2 \
+            share/term-ime/rime-data/opencc/emoji.json \
+            share/term-ime/rime-data/opencc/emoji_word.txt \
+            share/term-ime/rime-data/opencc/emoji_category.txt \
             share/term-ime/rime-data/LICENSE \
             share/term-ime/rime-data/VERSION; do
             grep -q "^$f$" contents.txt || { echo "missing $f in $archive" >&2; exit 1; }

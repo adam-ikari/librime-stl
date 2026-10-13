@@ -42,9 +42,11 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${PROJECT_SOURCE_DIR}")
 
 # dict/ is a published product, not a build input -- nothing here generates it.
 # The one thing the build can still check is self-consistency: librime resolves
-# an opencc_config under <shared_data_dir>/opencc/ and, if the file is missing,
-# drops the simplifier without failing the deployment. So every table a bundled
-# config references has to be committed next to it.
+# an opencc_config under <shared_data_dir>/opencc/; when the file is missing the
+# simplifier still loads and only fails at the first conversion, logging
+# "opencc config not found" and passing candidates through unconverted
+# (src/rime/gear/opencc.cc:33). So every table a bundled config references has
+# to be committed next to it.
 file(GLOB rime_dict_opencc_configs ${PROJECT_SOURCE_DIR}/dict/opencc/*.json)
 foreach(rime_opencc_config ${rime_dict_opencc_configs})
   file(READ ${rime_opencc_config} rime_opencc_json)

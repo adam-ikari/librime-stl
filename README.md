@@ -117,7 +117,9 @@ dependency question rather than a behaviour change.
     build graph, so generating data and configuring the engine stay two separate
     jobs. Two gates: `make -C dict/tools check` regenerates and byte-compares the
     committed data, `make -C dict/tools smoke` deploys it and asserts candidate
-    behaviour against the real engine.
+    behaviour against the real engine. An optional emoji dictionary
+    (`dict/opencc/emoji*`, vendored from [rime-emoji](https://github.com/rime/rime-emoji))
+    ships with it, switched off by default and toggled with Ctrl+Shift+6.
 
 Syncing upstream
 ===
@@ -192,7 +194,10 @@ Related works
 > **Fork.** `dict/luna_pinyin.dict.yaml` derives from
 > [rime-luna-pinyin](https://github.com/rime/rime-luna-pinyin) (LGPL-3.0) and
 > `dict/essay.txt` from [rime-essay](https://github.com/rime/rime-essay); both are
-> pinned in [dict/tools/sources.lock](dict/tools/sources.lock).
+> pinned in [dict/tools/sources.lock](dict/tools/sources.lock). The optional emoji
+> dictionary `dict/opencc/emoji*.{json,txt}` is a verbatim copy of
+> [rime-emoji](https://github.com/rime/rime-emoji) `Emoji-14.0` (also LGPL-3.0),
+> pinned there as `emoji-base`.
 
 Credits
 ===

@@ -7,7 +7,9 @@ with its own sources and licenses; see [dict/LICENSE](dict/LICENSE).
 
 ## dict/ data
 
-Per-file breakdown (LGPL-3.0 for `essay.txt` and `luna_pinyin.dict.yaml`; Apache-2.0 for
+Per-file breakdown (LGPL-3.0 for `essay.txt`, `luna_pinyin.dict.yaml` and the verbatim
+`opencc/emoji*.{json,txt}` vendored from [rime-emoji](https://github.com/rime/rime-emoji);
+Apache-2.0 for
 the OpenCC-derived `*.json`/`*.ocd2`; MIT for this project's own `variants*.txt` and
 `t2s_full.json`) is in [dict/LICENSE](dict/LICENSE). Full texts of the data licenses are
 vendored under [`licenses/`](licenses/): `LGPL-3.0.txt`, `GPL-3.0.txt`, `Apache-2.0.txt`.
