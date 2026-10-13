@@ -1,0 +1,25 @@
+# Rime schema patch
+# encoding: utf-8
+
+# Vendored from rime/rime-emoji@771d613b (emoji-base in tools/sources.lock),
+# with two local changes, both of them deliberate:
+#   reset: 1 -> 0        this build ships emoji suggestions off by default
+#   + key_binder entry   the switch needs a key; upstream leaves that to the user
+# Applied by luna_pinyin.schema.yaml: `__patch: emoji_suggestion:/patch`.
+# See dict/README.md for why emoji live here instead of in the dictionary.
+
+patch:
+  switches/@next:
+    name: emoji_suggestion
+    reset: 0
+    states: [ "🈚️️\uFE0E", "🈶️️\uFE0F" ]
+  'engine/filters/@before 0':
+    simplifier@emoji_suggestion
+  emoji_suggestion:
+    opencc_config: emoji.json
+    option_name: emoji_suggestion
+    tips: all
+  # `@next` appends one list element: the value must be the binding itself, a
+  # `- {…}` sequence here would nest a list inside bindings and be ignored.
+  'key_binder/bindings/@next':
+    {when: always, accept: Control+Shift+6, toggle: emoji_suggestion}
