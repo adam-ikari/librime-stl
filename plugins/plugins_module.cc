@@ -4,14 +4,17 @@
 //
 
 #include <algorithm>
-#include <boost/algorithm/string.hpp>
-#include <boost/dll.hpp>
 #include <filesystem>
 #include <rime/build_config.h>
 #include <rime/common.h>
 #include <rime/component.h>
 #include <rime/module.h>
 #include <rime/registry.h>
+// fork: the two <boost/...> includes here (<boost/algorithm/string.hpp> and
+// <boost/dll.hpp>) are replaced with the fork's shims; the boost:: call sites
+// below are unchanged, the shims provide those names in namespace boost.
+#include <rime/shared_library.hpp>
+#include <rime/string_utils.hpp>
 #include <rime_api.h>
 
 namespace fs = std::filesystem;

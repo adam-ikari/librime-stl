@@ -95,7 +95,8 @@ dependency question rather than a behaviour change.
 
   - **No Boost.** `std::regex` plus a minimal `<rime/*.hpp>` shim set replaces the
     boost facilities librime used (algorithm/string, signals2, interprocess, crc,
-    uuid, regex). Upstream's Boost usage is translated at the `#include` line -- the
+    uuid, regex, and dll's `shared_library` for plugin loading). Upstream's Boost
+    usage is translated at the `#include` line -- the
     shims live in the `boost::` namespace, so call sites are untouched. Constructs
     that cannot be shimmed are replaced at configure time instead (Boost.PP became
     `src/rime_extra_modules.h.in`).

@@ -83,14 +83,11 @@ if(MSVC)
   set(Boost_USE_STATIC_RUNTIME ON)
 endif()
 
-if(LINUX)
-  # This fork patched librime to drop Boost entirely: boost::regex -> std::regex,
-  # and boost::algorithm/signals2/interprocess/crc/uuid -> <rime/*.hpp> shims.
-  # No find_package(Boost) needed (the only <boost/...> include left in this fork
-  # is boost/sml.hpp, from the bundled deps/sml submodule, not system Boost).
-endif()
-# Keep BOOST_DLL_USE_STD_FS so librime's path class uses std::filesystem.
-add_definitions(-DBOOST_DLL_USE_STD_FS)
+# fork: this tree includes no system Boost header. boost::regex -> std::regex,
+# and boost::algorithm/signals2/interprocess/crc/uuid/dll -> the <rime/*.hpp>
+# shims, which provide those names under namespace boost so call sites compile
+# unchanged. Hence no find_package(Boost) and no Boost in CI; upstream's
+# -DBOOST_DLL_USE_STD_FS (a boost::dll switch) is dropped with the dependency.
 
 if(ENABLE_LOGGING)
 
