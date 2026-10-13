@@ -9,6 +9,9 @@
 
 #include <rime/build_config.h>
 
+// fork: <algorithm> used to arrive transitively through the boost/signals2
+// headers dropped below; std::any_of in segmentation.h is the visible case.
+#include <algorithm>
 #include <filesystem>
 #include <functional>
 #include <list>
