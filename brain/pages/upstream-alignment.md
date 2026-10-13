@@ -5,7 +5,7 @@ category: decision
 status: active
 tags: [engine, upstream, style]
 created: "2026-10-13T05:37:49"
-updated: "2026-10-13T05:38:08"
+updated: "2026-10-13T09:25:10"
 ---
 
 <!-- compiled_truth -->
@@ -35,6 +35,38 @@ CI lint 用 **clang-format 23**（`action-install-clang-format.sh` 走 `sudo apt
 正确做法是在同一 formatter 下比对 HEAD 与工作区的违规行数——本次 51 vs 51 即
 「未引入新偏移」。
 
+## 「不含 Boost」在本机不可验证
+
+开发机装了 Boost 头文件，CI 才是没有 Boost 的那个环境，所以这条主张只能靠构建产物
+自证，两条都不需要新环境：
+
+- `find build -name '*.o.d' | xargs grep -l include/boost` 必须零命中——配置期写出的
+  依赖清单就是「这次构建实际读过哪些头」。
+- 盯单个文件：`c++ <flags.make 里的 flags> -H -fsyntax-only <file>` 后 `grep -i boost`
+  为空。
+
+`8119a356` 删 CI 的 Boost 依赖时漏了 `plugins/plugins_module.cc`（仍 include
+`<boost/algorithm/string.hpp>` 与 `<boost/dll.hpp>`），而 Makefile 的 `release` 一定带
+`-DENABLE_EXTERNAL_PLUGINS=ON` 编它：本地全绿、CI 三平台从 `f6ea8d94` 起全红，就是这个
+盲区。
+
+补 shim 沿用既有模式：`src/rime/<name>.hpp` 在 `namespace boost` 里提供缺的能力，
+上游文件只改 `#include` 那一行并标 `# fork:`。`boost::dll::shared_library` 的替身是
+`src/rime/shared_library.hpp`（dlopen / LoadLibraryExW），语义必须逐条对齐 Boost.DLL，
+差一条就是运行时行为差：dlopen 拒绝 flags=0（Boost 先把默认模式归一化成
+`RTLD_LAZY|RTLD_LOCAL` 再传）、无父目录的裸文件名要补 `./`、句柄用 shared_ptr 共享
+所有权——`map<string, shared_library>` 的拷贝赋值与 `operator[]` 默认构造都依赖最后
+这条，插件的静态注册才会在库里活着期间不被卸载。
+
+## 跟踪例外：`data/*` 默认被 gitignore
+
+`.gitignore` 里 `data/*`（`include/*`、`plugins/*/` 同理），`data/minimal/` 的那些
+schema/default/dict 文件是逐个 `git add -f` 提进来的。在本目录新增文件时普通 `git add`
+静默无效：工作区有文件 → 本地构建与 smoke 全绿；干净 checkout 没有 →
+`tools/CMakeLists.txt` 的 `file(COPY)` 在 configure 期直接失败，schema 的
+`__patch:` 引用也落空（`emoji_suggestion.yaml` 踩过）。新增这类文件后用
+`git ls-files data/` 确认真的进了索引。
+
 
 ## Timeline
 
@@ -48,4 +80,10 @@ CI lint 用 **clang-format 23**（`action-install-clang-format.sh` 走 `sudo apt
   kind: decision
   summary: "初版：确立对齐纪律与注释策略"
   source: sessions 2026-10-12/13
+  affects: [upstream-alignment]
+
+- time: 2026-10-13T09:25:10
+  kind: decision
+  summary: "补两条：Boost-free 只能靠 .o.d/-H 自证（含 dll shim 的语义对齐清单），以及 data/* 被 gitignore、新增文件须 -f"
+  source: "session 2026-10-13 (CI 排红)"
   affects: [upstream-alignment]
