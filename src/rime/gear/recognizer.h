@@ -29,7 +29,11 @@ struct RecognizerMatch {
 
 class RecognizerPatterns : public map<string, std::regex> {
  public:
-  void LoadConfig(Config* config, const string& name_space);
+  // fork: exported because a Windows rime_test links librime.dll, where only
+  // exported members are importable, and test/pcre_compat_test.cc drives this
+  // wiring. Marking the member, not the class, keeps MSVC's C4251 away from a
+  // std::map base.
+  RIME_DLL void LoadConfig(Config* config, const string& name_space);
   RecognizerMatch GetMatch(const string& input,
                            const Segmentation& segmentation) const;
 };

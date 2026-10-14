@@ -22,7 +22,10 @@ namespace rime {
 
 class Patterns : public vector<std::regex> {
  public:
-  bool Load(an<ConfigList> patterns);
+  // fork: exported for the same reason as RecognizerPatterns::LoadConfig --
+  // test/pcre_compat_test.cc links against it on Windows, where rime_test
+  // resolves symbols through librime.dll's export table.
+  RIME_DLL bool Load(an<ConfigList> patterns);
 };
 
 //
