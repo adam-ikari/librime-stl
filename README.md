@@ -99,7 +99,14 @@ dependency question rather than a behaviour change.
     usage is translated at the `#include` line -- the
     shims live in the `boost::` namespace, so call sites are untouched. Constructs
     that cannot be shimmed are replaced at configure time instead (Boost.PP became
-    `src/rime_extra_modules.h.in`).
+    `src/rime_extra_modules.h.in`). The same rule reaches third-party plugins: a
+    plugin asking for `<boost/algorithm/string.hpp>` only to call
+    `boost::starts_with` is answered from [cmake/plugin-shim](cmake/plugin-shim)
+    where the toolchain has no Boost (that header is never installed, and a real
+    Boost keeps being used where one exists). Plugins whose Boost use carries
+    semantics this fork does not have -- librime-lua's `boost::regex` and
+    boost::signals2 connection shape, librime-charcode's boost::locale -- are out
+    of the plugin matrix instead.
   - **Regex compatibility layer.** Schema-supplied patterns go through a shared
     PCRE→ECMAScript translation ([src/rime/pcre_translator.hpp](src/rime/pcre_translator.hpp)),
     and a bad pattern can no longer take the engine down with it.

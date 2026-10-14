@@ -1,5 +1,19 @@
 set(RIME_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 
+# fork: a plugin we do not own can still ask for <boost/algorithm/string.hpp>
+# just to call boost::starts_with. <rime/string_utils.hpp> already provides that
+# name, so on a toolchain that has no Boost at all (every platform in this CI)
+# the include is answered from cmake/plugin-shim. Where real Boost headers exist
+# it is left alone, and the check is a header probe rather than find_package(Boost)
+# because this tree configures without Boost entirely. The shim sits under cmake/,
+# not here: the discovery loop below reads every directory in this one as a plugin.
+include(CheckIncludeFileCXX)
+check_include_file_cxx(boost/algorithm/string.hpp RIME_HAVE_BOOST_ALGORITHM_STRING)
+if(NOT RIME_HAVE_BOOST_ALGORITHM_STRING)
+  message(STATUS "No boost/algorithm/string.hpp: plugins use the rime shim")
+  include_directories(${RIME_SOURCE_DIR}/cmake/plugin-shim)
+endif()
+
 # work around CMake build issues on macOS
 set(rime_plugin_boilerplate_src "plugin.cc")
 
