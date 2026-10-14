@@ -8,6 +8,7 @@
 #   make dict             regenerate luna_pinyin.dict.yaml
 #   make ocd2             regenerate the opencc binary phrase tables
 #   make all              the three products above
+#   make test-opencc      regenerate the opencc fixture rime_test converts against
 #   make check            regenerate, then compare byte-for-byte with what dict/ commits
 #   make smoke            real-engine smoke test: deploy dict/ and assert candidates
 #   make audit            dead single-character readings that hijack initial-only input (read-only)
@@ -15,8 +16,9 @@
 #   make audit-coverage   composition blind spots from missing standard readings (read-only)
 #   make package          build the release tarball
 #
-# check is the acceptance gate for product consistency: a non-empty diff means
-# a script is wrong, and the fix is never to edit the data to "align" it.
+# check is the acceptance gate for every committed generated file, product data
+# and the test fixture alike: a non-empty diff means a script is wrong, and the
+# fix is never to edit the data to "align" it.
 # smoke is the acceptance gate for usability: check can be all green while the
 # engine still cannot read these files (toneless syllables, a schema pattern
 # that fails to compile, entries the table builder rejects) -- only a real
@@ -27,6 +29,7 @@
 
 TOOLS := $(CURDIR)
 DICT  := $(abspath $(TOOLS)/..)
+TEST  := $(abspath $(TOOLS)/../../test)
 BUILD := $(TOOLS)/.build
 OUT   ?= $(BUILD)/out
 PKG   := $(BUILD)/pkg
@@ -45,7 +48,7 @@ PY ?= python3
 VERSION := $(shell cat $(DICT)/VERSION)
 NAME := term-ime-dict-$(VERSION)
 
-.PHONY: all audit audit-words audit-coverage check clean dict essay ocd2 package smoke toolchain
+.PHONY: all audit audit-words audit-coverage check clean dict essay ocd2 package smoke test-opencc toolchain
 
 all: $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/opencc
 
@@ -65,6 +68,7 @@ $(OPENCC_DICT) $(OPENCC_CLI):
 essay: $(OUT)/essay.txt
 dict: $(OUT)/luna_pinyin.dict.yaml
 ocd2: $(OUT)/opencc
+test-opencc: $(OUT)/test-opencc
 
 $(OUT)/essay.txt: upgrade_essay.py protected_chars.txt t2s_char.json sources.lock | $(OUT) toolchain
 	$(PY) upgrade_essay.py --out $@
@@ -75,12 +79,17 @@ $(OUT)/luna_pinyin.dict.yaml: convert_dict.py pinyin_fixes.txt protected_chars.t
 $(OUT)/opencc: rebuild_ocd2.sh | $(OUT) toolchain
 	sh rebuild_ocd2.sh $@
 
+# The fixture rime_test converts against (see test/opencc/). Not a product: it
+# is never packaged, only regenerated for check.
+$(OUT)/test-opencc: rebuild_test_opencc.sh | $(OUT) toolchain
+	sh rebuild_test_opencc.sh $@
+
 $(OUT):
 	mkdir -p $(OUT)
 
-# Byte-for-byte against what is committed. Three separate diffs so a failure
+# Byte-for-byte against what is committed. Four separate diffs so a failure
 # says which product drifted.
-check: all
+check: all test-opencc
 	@fail=0; \
 	for f in essay.txt luna_pinyin.dict.yaml; do \
 	  if diff -u $(DICT)/$$f $(OUT)/$$f > $(BUILD)/$$f.diff; then \
@@ -93,6 +102,11 @@ check: all
 	  echo "OK   opencc/"; \
 	else \
 	  echo "DIFF opencc/ -- see $(BUILD)/opencc.diff"; fail=1; \
+	fi; \
+	if diff -ru $(TEST)/opencc $(OUT)/test-opencc > $(BUILD)/test-opencc.diff; then \
+	  echo "OK   test/opencc/"; \
+	else \
+	  echo "DIFF test/opencc/ -- see $(BUILD)/test-opencc.diff"; fail=1; \
 	fi; \
 	exit $$fail
 

@@ -104,7 +104,9 @@ dependency question rather than a behaviour change.
     PCRE→ECMAScript translation ([src/rime/pcre_translator.hpp](src/rime/pcre_translator.hpp)),
     and a bad pattern can no longer take the engine down with it.
   - **OpenCC vendored** ([deps/opencc](deps/opencc)), with the `.ocd2` binaries it
-    would otherwise generate at build time committed under `dict/opencc/`.
+    would otherwise generate at build time committed under `dict/opencc/`, plus a
+    mirror of opencc's install directory under `test/opencc/` for `rime_test`
+    (`test/CMakeLists.txt` points `Opencc_DICT_DIR` at it on every platform).
     Configure and build need no host Python and no host-built `opencc_dict` -- the
     latter used to break cross-compiling outright (`Exec format error` under NDK).
   - **The shared library builds for more platforms.** commit-ci builds it for

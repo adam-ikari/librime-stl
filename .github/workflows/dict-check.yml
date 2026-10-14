@@ -3,6 +3,10 @@ on:
   pull_request:
     paths:
       - 'dict/**'
+      # test/opencc/ is generated out of deps/opencc like dict/opencc/ is, so a
+      # change to either can only be accepted through this gate.
+      - 'test/opencc/**'
+      - 'deps/opencc/**'
       - '.github/workflows/dict-check.yml'
 
 jobs:
