@@ -1,5 +1,9 @@
 FROM debian:12.15-slim
 
+# fork: no liblua5.4-dev, and librime-lua is out of the plugin set below -- it
+# includes <boost/regex.hpp> and assumes boost::signals2's connection shape,
+# which this fork ships neither of. octagram, charcode and predict stay, so the
+# external-plugin build path is still covered.
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
   && apt-get install -y --no-install-recommends \
   ca-certificates \
@@ -17,7 +21,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
   libleveldb-dev \
   libmarisa-dev \
   libopencc-dev \
-  liblua5.4-dev \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /librime
@@ -25,7 +28,6 @@ COPY . .
 
 RUN bash install-plugins.sh \
   rime/librime-charcode \
-  hchunhui/librime-lua \
   lotem/librime-octagram \
   rime/librime-predict
 
