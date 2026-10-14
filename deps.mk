@@ -10,6 +10,13 @@ endif
 build ?= build
 prefix ?= $(rime_root)
 
+# fork: these are static archives, and on Linux a non-PIC one cannot be linked
+# into a shared librime.so -- ld fails with "relocation R_X86_64_PC32 ... can not
+# be used when making a shared object". macOS and Windows emit position
+# independent code anyway, so this only unblocks the Linux path; build-android.sh
+# passes the same flag when it cross-builds these deps.
+pic_flags = -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
+
 rime_deps = glog googletest leveldb marisa-trie opencc yaml-cpp
 
 .PHONY: all clean clean-dist clean-src $(rime_deps)
@@ -31,19 +38,24 @@ clean-src:
 		rm -r $(src_dir)/$${dep}/$(build) || true; \
 	done
 
+# fork: WITH_UNWIND=none -- glog's default is libunwind, and a static libglog.a
+# built that way has undefined _U* references. librime links the archive by path,
+# so nothing carries the extra -lunwind; without this, rime_test fails to link on
+# any host that happens to have libunwind headers installed.
 glog:
 	cd $(src_dir)/glog; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DBUILD_TESTING:BOOL=OFF \
 	-DWITH_GFLAGS:BOOL=OFF \
+	-DWITH_UNWIND:STRING=none \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	&& cmake --build $(build) --target install
 
 googletest:
 	cd $(src_dir)/googletest; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DBUILD_GMOCK:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
@@ -51,7 +63,7 @@ googletest:
 
 leveldb:
 	cd $(src_dir)/leveldb; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DLEVELDB_BUILD_BENCHMARKS:BOOL=OFF \
 	-DLEVELDB_BUILD_TESTS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
@@ -60,7 +72,7 @@ leveldb:
 
 marisa-trie:
 	cd $(src_dir)/marisa-trie; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON \
@@ -70,7 +82,7 @@ marisa-trie:
 
 opencc:
 	cd $(src_dir)/opencc; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DBUILD_SHARED_LIBS:BOOL=OFF \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
@@ -80,7 +92,7 @@ opencc:
 
 yaml-cpp:
 	cd $(src_dir)/yaml-cpp; \
-	cmake . -B$(build) \
+	cmake . -B$(build) $(pic_flags) \
 	-DYAML_CPP_BUILD_CONTRIB:BOOL=OFF \
 	-DYAML_CPP_BUILD_TESTS:BOOL=OFF \
 	-DYAML_CPP_BUILD_TOOLS:BOOL=OFF \

@@ -48,6 +48,43 @@ jobs:
   android:
     needs: lint
     uses: ./.github/workflows/android-build.yml
+
+  # fork: every other job here takes its third-party libraries either from distro
+  # packages (Linux, Docker, MinGW) or from whatever `make deps` had installed
+  # into the source tree, and nothing ever said which copy a build got -- a host
+  # opencc 1.1.3 can sit under a librime while dict/opencc/*.ocd2 came from the
+  # vendored 1.1.9. This job is the coverage for the pinned deps themselves: the
+  # find modules are restricted to a private prefix, RIME_DEPS_PREFIX fails the
+  # configure if anything resolved outside it or if the opencc it finds is not
+  # the vendored version, and rime_test then runs against that build.
+  hermetic-deps:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout last commit
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build the vendored dependencies into a private prefix
+        run: make deps prefix="$HOME/rime-deps"
+
+      - name: Configure with the dependency gate on
+        run: |
+          cmake -S . -B build-hermetic \
+            -DRIME_DEPS_PREFIX="$HOME/rime-deps" \
+            -DCMAKE_PREFIX_PATH="$HOME/rime-deps" \
+            -DCMAKE_FIND_ROOT_PATH="$HOME/rime-deps" \
+            -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY \
+            -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY \
+            -DBUILD_TEST=ON -DBUILD_SAMPLE=OFF
+
+      - name: Build and test
+        run: |
+          cmake --build build-hermetic -j"$(nproc)"
+          ctest --test-dir build-hermetic --output-on-failure
+
   docker:
     needs: lint
     uses: ./.github/workflows/docker-build.yml

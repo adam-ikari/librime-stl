@@ -77,7 +77,10 @@ jobs:
             include
             lib
             share
-          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.arch }}-${{ hashFiles('submodule-status') }}
+          # fork: deps/opencc is vendored, not a submodule, so the submodule
+          # status above cannot change when opencc changes. Hash it (and the dep
+          # build flags) or a stale lib/opencc.lib outlives the version bump.
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ matrix.arch }}-${{ hashFiles('submodule-status', 'deps/opencc/**', 'deps.mk', 'build.bat') }}
 
       - name: Build dependencies
         if: steps.cache-deps.outputs.cache-hit != 'true'

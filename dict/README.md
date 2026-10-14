@@ -123,6 +123,16 @@ git merge upstream/master        # dict/ 与上游无交集，正常不会冲突
 生成工具在 `tools/`，全部显式调用，故意不接进 CMake：接进去哪怕做成非 `ALL`
 目标，也会把「配置引擎」和「生成词库」重新绑回同一张编译图。
 
+这条边界是可检查的，不只是约定。`tools/.build/` 是 **host 构建**（opencc 带
+`OPENCC_BUILD_DATA=ON`，好让 `opencc_dict` 现编现用），且**从不 install**——它
+就地构建、就地运行，产物只有写进本目录的那些文件。所以它不可能出现在引擎的
+依赖搜索路径里；两张编译图唯一的交点是**提交物**：`opencc/`（运行时数据）与
+`test/opencc/`（`rime_test` 的 fixture）。反过来，引擎链接的 opencc 与生成这些
+数据的 opencc 不一定是同一份——Linux 上系统包是 1.1.3，而 pin 是 1.1.9，且两者
+soname 同为 `libopencc.so.1.1`，运行时看不出差别。configure 因此打印每个依赖的
+解析路径与 opencc 的 `resolved/pin`；声明了 `-DRIME_DEPS_PREFIX` 的构建（Android
+交叉、CI 的 `hermetic-deps`）把版本不一致变成硬错误。见根 `README.md`。
+
 ```sh
 make -C tools check            # 重新生成，并与本目录已提交内容逐字节比对
 make -C tools smoke            # 部署真实引擎，断言词库可用（需先构建引擎）

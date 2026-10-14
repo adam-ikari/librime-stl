@@ -33,12 +33,22 @@ option(ENABLE_TIMESTAMP "Embed timestamp to schema artifacts" ON)
 set(RIME_DATA_DIR "rime-data" CACHE STRING "Target directory for Rime data")
 set(RIME_PLUGINS_DIR "rime-plugins" CACHE STRING "Target directory for externally built Rime plugins")
 
+# fork: declare a dependency prefix and this build refuses to use any third-party
+# library that resolved outside it, and insists the opencc it found is the version
+# vendored under deps/opencc. Left empty it changes nothing -- a host build still
+# uses system packages -- but it now prints where every dependency came from.
+# build-android.sh sets it to the private prefix it cross-builds the deps into.
+set(RIME_DEPS_PREFIX "" CACHE PATH "Fail if any dependency resolves outside this prefix")
+
 if(WIN32)
   set(ext ".exe")
 endif(WIN32)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake")
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "${PROJECT_SOURCE_DIR}")
+
+include(RimeDepProvenance)
+rime_read_opencc_pin()
 
 # dict/ is a published product, not a build input -- nothing here generates it.
 # The one thing the build can still check is self-consistency: librime resolves
@@ -192,6 +202,12 @@ if(X11Keysym)
 else()
   message(WARNING "X11/keysym.h not found.")
 endif()
+
+# fork: every find_module above has now answered, so say which copy of each
+# dependency this build is going to link, and gate it if a prefix was declared.
+rime_detect_opencc_version()
+rime_report_dep_provenance()
+rime_assert_deps_hermetic()
 
 configure_file(
   "${PROJECT_SOURCE_DIR}/src/rime/build_config.h.in"

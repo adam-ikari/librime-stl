@@ -32,10 +32,10 @@ jobs:
 
       - name: Verify the artifact
         run: |
-          lib="build/android-${{ matrix.abi }}/rime/lib/librime.so"
-          file "$lib" | grep -E 'ELF 64-bit.*(ARM aarch64|x86-64)' || { file "$lib"; exit 1; }
-          nm -D --defined-only "$lib" | grep -q ' T rime_get_api' \
-            || { echo "rime_get_api not exported as C symbol"; exit 1; }
-          readelf -d "$lib" | grep -q 'Shared library: \[liblog.so\]' \
-            || { echo "liblog missing from NEEDED"; exit 1; }
-          echo "OK $lib"
+          # The same assertions build-android.sh runs at the end of a build
+          # (NEEDED limited to bionic, rime_get_api exported), replayed against
+          # the artifact without rebuilding. Keeping one copy is the point: a
+          # second, weaker copy here is what let the README claims drift from
+          # what any check actually enforced.
+          VERIFY_ONLY=1 ./build-android.sh "${{ matrix.abi }}"
+          file "build/android-${{ matrix.abi }}/rime/lib/librime.so"

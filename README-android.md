@@ -24,15 +24,38 @@ NDK=/path/to/android-ndk-r28 ./build-android.sh arm64-v8a   # or: x86_64, armeab
 Output: `build/android-<abi>/rime/lib/librime.so`
 
 The script cross-compiles the five static deps
-(glog/leveldb/marisa-trie/opencc/yaml-cpp) and then the shared engine library.
-`opencc` is built with `OPENCC_BUILD_DATA=OFF OPENCC_BUILD_TOOLS=OFF`, so
-dictionary generation never runs on the NDK build — see `dict/README.md`.
+(glog/leveldb/marisa-trie/opencc/yaml-cpp) into a private prefix under
+`build/android-<abi>/prefix`, then configures the engine with
+`-DRIME_DEPS_PREFIX` pointed at it, so the build fails outright if any dependency
+resolves outside that prefix or if the opencc it finds is not the version
+vendored under `deps/opencc`. `opencc` is built with
+`OPENCC_BUILD_DATA=OFF OPENCC_BUILD_TOOLS=OFF`, so dictionary generation never
+runs on the NDK build — see `dict/README.md`.
 
-Verified (2026-10-09, NDK r28, no device):
+Environment: `CLEAN=1` discards the tree for that ABI before configuring;
+`VERIFY_ONLY=1` skips every build step and re-checks a library with the same
+assertions a build ends with — the `librime.so` already there for that ABI, or
+`VERIFY_ARTIFACT=path` for any other (a host build's library fails them, which
+is the point). `NDK` is needed to find the toolchain; the checks themselves fall
+back to `readelf`/`nm` on `PATH`. Reusing a tree configured by a different
+toolchain, ABI or platform is refused rather than silently re-cached.
 
-- `arm64-v8a` and `x86_64` produce an ELF shared object whose `NEEDED` entries
-  are bionic system libraries only (`liblog.so libm.so libdl.so libc.so`).
-- `rime_get_api` is exported as an unmangled C symbol; a test consumer linked
-  with `aarch64-linux-android21-clang++` resolves it against `librime.so`.
-- **Not verified on a real device** — the binary has never run on Android
-  hardware.
+## What the artifact is checked against
+
+The script ends by reading its own output, and fails if any of this is untrue:
+
+- the `NEEDED` entries of `librime.so` are bionic system libraries only
+  (`liblog.so libm.so libdl.so libc.so`) — every dependency, opencc included, is
+  cross-built static and absorbed into the library;
+- `rime_get_api` is exported as an unmangled C symbol.
+
+Which is what the JNI layer needs to know: the consumer links `librime_jni.so`
+against this `librime.so` and **does not link `libopencc.a`** — opencc's code is
+already inside `librime.so`, and nothing else provides it. The runtime side is
+data, not libraries: the `dict/opencc/` configs and tables have to be packaged
+under `<shared_data_dir>/opencc/`, or the `simplifier` filters (emoji suggestions,
+traditional/simplified conversion) log `opencc config not found` once and pass
+candidates through unconverted.
+
+Still unverified: the binary has never run on Android hardware. These checks read
+the ELF; none of them is a device test.
