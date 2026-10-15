@@ -73,6 +73,17 @@ jobs:
       - name: Build and test
         run: make test
 
+      # fork: `make test` configures the standalone graph
+      # (-DENABLE_EXTERNAL_PLUGINS=ON -DBUILD_MERGED_PLUGINS=OFF), so this runner
+      # really does build librime-lua.dylib -- and nothing here had ever loaded
+      # it. All three Boost replacements this fork made (the dlopen loader,
+      # std::regex behind the plugin shim, the grouped connect in rime::signal)
+      # only show their defects at load time: a plugin that links clean and dies
+      # at dlopen is exactly the shape a link-only gate ships. Upstream's
+      # workflow has no equivalent step.
+      - name: Plugin runtime e2e
+        run: python3 test/e2e_lua.py
+
       - name: Create distributable
         if: matrix.create-distributable
         run: |

@@ -58,8 +58,28 @@ REPO = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "dict" / "tools"))
 import smoke  # reuse the deployment wiring the dictionary gate already proves
 
-CONSOLE = REPO / "build" / "bin" / "rime_console"
-PLUGIN_DIR = REPO / "build" / "lib" / "rime-plugins"
+# Resolved rather than spelled out, because the same graph is a different file
+# name per platform: CMake puts a SHARED plugin under build/lib/rime-plugins on
+# ELF and Mach-O (build/bin/rime-plugins on Windows), and the console is
+# rime_console(.exe).
+BUILD = REPO / "build"
+
+
+def find_console():
+    for name in ("rime_console", "rime_console.exe"):
+        p = BUILD / "bin" / name
+        if p.exists():
+            return p
+    return None
+
+
+def find_plugin():
+    for directory in (BUILD / "lib" / "rime-plugins", BUILD / "bin" / "rime-plugins"):
+        for suffix in ("so", "dylib", "dll"):
+            p = directory / f"librime-lua.{suffix}"
+            if p.exists():
+                return p
+    return None
 
 # Written as data, not as a Python string with escapes: Lua reads these patterns
 # literally, and \\l inside a Lua long string is what the shim has to translate.
@@ -143,10 +163,17 @@ def fail(msg):
     return 1
 
 
+def missing(msg):
+    # Not a check that failed -- a graph this tree was not built for. Exit 2 so
+    # a CI step that expects the standalone plugin shape is distinguishable from
+    # a plugin that is installed and broken.
+    print(f"MISSING {msg}")
+    return 2
+
+
 def run(console, root, keys, extra=()):
     return subprocess.run([str(console), *extra, str(root)], cwd=root,
                           input=f"{keys}\n", capture_output=True, text=True)
-
 
 def patch_schema(schema_path):
     text = schema_path.read_text(encoding="utf-8")
@@ -164,12 +191,14 @@ def main():
     parser.add_argument("--keep", action="store_true", help="keep the deployment")
     args = parser.parse_args()
 
-    if not CONSOLE.exists():
-        return fail(f"no engine binary at {CONSOLE}")
-    plugin = PLUGIN_DIR / "librime-lua.so"
-    if not plugin.exists():
-        return fail(f"no {plugin}; build with -DENABLE_EXTERNAL_PLUGINS=ON "
-                    "-DBUILD_MERGED_PLUGINS=OFF after install-plugins.sh")
+    console = find_console()
+    if console is None:
+        return missing(f"no engine binary under {BUILD / 'bin'}")
+    plugin = find_plugin()
+    if plugin is None:
+        return missing("no librime-lua plugin under build/lib/rime-plugins; build "
+                       "with -DENABLE_EXTERNAL_PLUGINS=ON -DBUILD_MERGED_PLUGINS=OFF "
+                       "after install-plugins.sh")
 
     root = pathlib.Path(tempfile.mkdtemp(prefix="e2e-lua-"))
     rc = 0
@@ -181,7 +210,7 @@ def main():
             return fail(err)
         (root / "rime.lua").write_text(RIME_LUA, encoding="utf-8")
 
-        deploy = subprocess.run([str(CONSOLE), "--build", str(root)], cwd=root,
+        deploy = subprocess.run([str(console), "--build", str(root)], cwd=root,
                                 capture_output=True, text=True)
         log = deploy.stdout + deploy.stderr
         errors = smoke.GLOG_ERROR.findall(log)
@@ -197,13 +226,13 @@ def main():
         # not to anything this process captures.
         for name in ("e2e.regex", "e2e.groups", "e2e.filter"):
             (root / name).unlink(missing_ok=True)
-        committed = run(CONSOLE, root, "luaprobe")
+        committed = run(console, root, "luaprobe")
         if "E2E-LUA-OK" not in committed.stdout:
             rc = rc or fail(f"librime-lua.so did not produce a lua candidate "
                             f"(not loaded, or rime.lua not run): "
                             f"{committed.stdout[-300:]}{committed.stderr[-300:]}")
         else:
-            print("OK   librime-lua.so loads and rime.lua registers a translator")
+            print(f"OK   {plugin.name} loads and rime.lua registers a translator")
 
         got = (root / "e2e.regex").read_text(encoding="utf-8") \
             if (root / "e2e.regex").exists() else "<missing>"
@@ -232,7 +261,7 @@ def main():
         # later shim makes the failure catchable; what must never happen is the
         # pattern being accepted and matching something.
         (root / "e2e.bad").unlink(missing_ok=True)
-        bad = run(CONSOLE, root, "luabad")
+        bad = run(console, root, "luabad")
         state = (root / "e2e.bad").read_text(encoding="utf-8") \
             if (root / "e2e.bad").exists() else "<missing>"
         if "before" not in state:
