@@ -28,9 +28,18 @@ The script cross-compiles the five static deps
 `build/android-<abi>/prefix`, then configures the engine with
 `-DRIME_DEPS_PREFIX` pointed at it, so the build fails outright if any dependency
 resolves outside that prefix or if the opencc it finds is not the version
-vendored under `deps/opencc`. `opencc` is built with
-`OPENCC_BUILD_DATA=OFF OPENCC_BUILD_TOOLS=OFF`, so dictionary generation never
-runs on the NDK build — see `dict/README.md`.
+vendored under `deps/opencc`. How each dep is configured lives in one place, the
+`<dep>_flags` table in `deps.mk`, which this script reads via `make -f deps.mk
+print-flags DEP=x`; opencc's entry has data and tools off, so dictionary
+generation never runs on the NDK build — see `dict/README.md`.
+
+The graph compiles one library and nothing else. `googletest` is in `deps.mk` but
+not cross-built (`BUILD_TEST=OFF`, so no `rime_test` needs it); `tools/`' six
+command-line programs are not even generated for Android; and gflags is not
+searched, because this graph builds against the vendored glog that `deps.mk`
+configures `WITH_GFLAGS=OFF`, so there is nothing for gflags to satisfy. Host
+graphs keep both the `tools/` targets and the gflags search — a distro
+`libglog.a` built with gflags does need linking it.
 
 Environment: `CLEAN=1` discards the tree for that ABI before configuring;
 `VERIFY_ONLY=1` skips every build step and re-checks a library with the same

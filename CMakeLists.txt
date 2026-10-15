@@ -101,9 +101,22 @@ endif()
 
 if(ENABLE_LOGGING)
 
-  find_package(Gflags)
-  if(Gflags_FOUND)
-    include_directories(${Gflags_INCLUDE_PATH})
+  # fork: gflags is a link-time requirement of some *glog* builds, never of
+  # librime -- no source here includes gflags/gflags.h, and the vendored glog is
+  # configured WITH_GFLAGS=OFF (deps.mk, build.bat). A graph that declares
+  # RIME_DEPS_PREFIX is building against that glog, so searching anyway only lets
+  # a host gflags walk into a cross build: it is content nothing compiles or
+  # links, and the provenance gate then fails the build over it. Host graphs
+  # keep the search, because a distro libglog.a built with gflags does need it.
+  if(NOT RIME_DEPS_PREFIX STREQUAL "")
+    message(STATUS
+      "Gflags: not searched -- this build takes glog from '${RIME_DEPS_PREFIX}' "
+      "and that glog is built WITH_GFLAGS=OFF")
+  else()
+    find_package(Gflags)
+    if(Gflags_FOUND)
+      include_directories(${Gflags_INCLUDE_PATH})
+    endif()
   endif()
 
   find_package(Glog REQUIRED)
@@ -328,7 +341,17 @@ endif()
 add_subdirectory(src)
 
 if(BUILD_SHARED_LIBS)
-  add_subdirectory(tools)
+  # fork: tools/ is six command-line programs (rime_console, rime_deployer,
+  # rime_dict_manager, rime_patch, rime_api_console, rime_table_decompiler).
+  # They are developer utilities; the Android graph exists to produce one
+  # librime.so for a JNI consumer, which links none of them. Generating those
+  # targets made the JNI build's "only what it needs" boundary depend on one
+  # shell script remembering to pass --target rime.
+  if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    message(STATUS "tools/: not generated -- this graph builds one librime.so for a JNI consumer")
+  else()
+    add_subdirectory(tools)
+  endif()
 
   if(BUILD_TEST)
     add_subdirectory(test)

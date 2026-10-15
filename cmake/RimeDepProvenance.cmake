@@ -110,7 +110,9 @@ endfunction()
 
 # Deps whose resolved paths are the provenance question. X11/keysym.h is
 # deliberately absent: it is vendored into this repo's include/ and is not a
-# dependency anyone installs.
+# dependency anyone installs. Gflags reports empty in a RIME_DEPS_PREFIX graph by
+# design -- CMakeLists.txt does not search for it there, since the vendored glog
+# it links is built WITH_GFLAGS=OFF.
 set(RIME_PROVENANCE_DEPS Gflags Glog LevelDb Marisa Opencc YamlCpp)
 
 # GTest comes from CMake's own FindGTest, which names its results differently and

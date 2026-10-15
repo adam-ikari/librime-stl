@@ -19,9 +19,55 @@ pic_flags = -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
 
 rime_deps = glog googletest leveldb marisa-trie opencc yaml-cpp
 
-.PHONY: all clean clean-dist clean-src $(rime_deps)
+# fork: one dependency's build-time policy is declared once, in this table. The
+# Android cross build reads it from here (`make -f deps.mk print-flags DEP=x`),
+# so the two build graphs cannot configure the same library two ways -- they did,
+# and glog's WITH_UNWIND was the flag that drifted: a static libglog.a built with
+# the default libunwind driver has undefined _U* references that nothing supplies,
+# which fails rime_test's link only on hosts that happen to ship libunwind.
+#
+# BUILD_SHARED_LIBS=OFF is stated instead of inherited. CMake's default is static,
+# so today's archives are static by accident of an unset variable, not by policy:
+# a toolchain file or caller that turns it ON would silently produce shared
+# objects here and the engine would link them into a cross build.
+#
+# Each entry is one cmake flag per line: the cross script takes the printed value
+# as shell words, so a value containing a space would split into two arguments.
+glog_flags = \
+	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	-DBUILD_TESTING:BOOL=OFF \
+	-DWITH_GFLAGS:BOOL=OFF \
+	-DWITH_UNWIND:STRING=none
+googletest_flags = \
+	-DBUILD_GMOCK:BOOL=OFF
+leveldb_flags = \
+	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	-DLEVELDB_BUILD_BENCHMARKS:BOOL=OFF \
+	-DLEVELDB_BUILD_TESTS:BOOL=OFF
+marisa-trie_flags = \
+	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	-DBUILD_TESTING:BOOL=OFF \
+	-DENABLE_TOOLS:BOOL=OFF
+opencc_flags = \
+	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	-DOPENCC_BUILD_DATA:BOOL=OFF \
+	-DOPENCC_BUILD_TOOLS:BOOL=OFF
+yaml-cpp_flags = \
+	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	-DYAML_CPP_BUILD_CONTRIB:BOOL=OFF \
+	-DYAML_CPP_BUILD_TESTS:BOOL=OFF \
+	-DYAML_CPP_BUILD_TOOLS:BOOL=OFF
+
+.PHONY: all clean clean-dist clean-src print-flags $(rime_deps)
 
 all: $(rime_deps)
+
+# Existence is tested with $(value ...), which reads the definition without
+# expanding it; the echo expands, exactly like the recipe below does, so a flag
+# that references another make variable prints the same text it configures with.
+print-flags:
+	$(if $(value $(DEP)_flags),,$(error unknown dependency '$(DEP)': no flags declared in deps.mk))
+	@echo $(strip $($(DEP)_flags))
 
 clean: clean-src clean-dist
 
@@ -38,64 +84,44 @@ clean-src:
 		rm -r $(src_dir)/$${dep}/$(build) || true; \
 	done
 
-# fork: WITH_UNWIND=none -- glog's default is libunwind, and a static libglog.a
-# built that way has undefined _U* references. librime links the archive by path,
-# so nothing carries the extra -lunwind; without this, rime_test fails to link on
-# any host that happens to have libunwind headers installed.
 glog:
 	cd $(src_dir)/glog; \
-	cmake . -B$(build) $(pic_flags) \
-	-DBUILD_SHARED_LIBS:BOOL=OFF \
-	-DBUILD_TESTING:BOOL=OFF \
-	-DWITH_GFLAGS:BOOL=OFF \
-	-DWITH_UNWIND:STRING=none \
+	cmake . -B$(build) $(pic_flags) $(glog_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	&& cmake --build $(build) --target install
 
 googletest:
 	cd $(src_dir)/googletest; \
-	cmake . -B$(build) $(pic_flags) \
-	-DBUILD_GMOCK:BOOL=OFF \
+	cmake . -B$(build) $(pic_flags) $(googletest_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	&& cmake --build $(build) --target install
 
 leveldb:
 	cd $(src_dir)/leveldb; \
-	cmake . -B$(build) $(pic_flags) \
-	-DLEVELDB_BUILD_BENCHMARKS:BOOL=OFF \
-	-DLEVELDB_BUILD_TESTS:BOOL=OFF \
+	cmake . -B$(build) $(pic_flags) $(leveldb_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	&& cmake --build $(build) --target install
 
 marisa-trie:
 	cd $(src_dir)/marisa-trie; \
-	cmake . -B$(build) $(pic_flags) \
+	cmake . -B$(build) $(pic_flags) $(marisa-trie_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
-	-DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON \
-	-DBUILD_TESTING:BOOL=OFF \
-	-DENABLE_TOOLS:BOOL=OFF \
 	&& cmake --build $(build) --target install
 
 opencc:
 	cd $(src_dir)/opencc; \
-	cmake . -B$(build) $(pic_flags) \
-	-DBUILD_SHARED_LIBS:BOOL=OFF \
+	cmake . -B$(build) $(pic_flags) $(opencc_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
-	-DOPENCC_BUILD_DATA:BOOL=OFF \
-	-DOPENCC_BUILD_TOOLS:BOOL=OFF \
 	&& cmake --build $(build) --target install
 
 yaml-cpp:
 	cd $(src_dir)/yaml-cpp; \
-	cmake . -B$(build) $(pic_flags) \
-	-DYAML_CPP_BUILD_CONTRIB:BOOL=OFF \
-	-DYAML_CPP_BUILD_TESTS:BOOL=OFF \
-	-DYAML_CPP_BUILD_TOOLS:BOOL=OFF \
+	cmake . -B$(build) $(pic_flags) $(yaml-cpp_flags) \
 	-DCMAKE_BUILD_TYPE:STRING="Release" \
 	-DCMAKE_INSTALL_PREFIX:PATH="$(prefix)" \
 	&& cmake --build $(build) --target install

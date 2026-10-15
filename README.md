@@ -156,7 +156,8 @@ dependency question rather than a behaviour change.
   - **The shared library builds for more platforms.** commit-ci builds it for
     Linux, macOS, Windows and Android and checks the produced library (Android
     verifies `librime.so` with `readelf -d`); consumers link against it through
-    the pure C API ([include/rime_api.h](include/rime_api.h)).
+    the pure C API ([src/rime_api.h](src/rime_api.h), installed as
+    `<prefix>/include/rime_api.h` from `CMakeLists.txt`'s `src/*.h` glob).
   - **A bundled Simplified Chinese dictionary** ([dict/](dict)): `luna_pinyin.dict.yaml`
     + `essay.txt` + the opencc data, published as a versioned artifact
     ([dict/CHANGELOG.md](dict/CHANGELOG.md)). Upstream ships none. Its generators live

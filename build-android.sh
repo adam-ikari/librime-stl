@@ -3,10 +3,11 @@
 #
 # The dictionary toolchain (dict/tools/) is not involved -- this builds the
 # engine only; the runtime dictionary data (dict/) is packaged by the consumer
-# (see dict/README.md). opencc gets OPENCC_BUILD_DATA=OFF and
-# OPENCC_BUILD_TOOLS=OFF: generating its data needs a host Python plus a
-# freshly built host opencc_dict, which under cross compilation dies with
-# Exec format error. See deps/opencc/UPSTREAM.md.
+# (see dict/README.md). deps.mk's flag table keeps opencc's data and tools off,
+# which is what this script asks the table for instead of deciding per library:
+# generating that data needs a host Python plus a freshly built host opencc_dict,
+# and under cross compilation that dies with Exec format error.
+# See deps/opencc/UPSTREAM.md.
 #
 # This tree is a separate build graph from build/, and hermetic on purpose: every
 # dependency is cross-built from deps/<dep> into $prefix, and the engine
@@ -132,21 +133,25 @@ common="-DCMAKE_TOOLCHAIN_FILE=$toolchain -DANDROID_ABI=$abi -DANDROID_PLATFORM=
   -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$prefix \
   -DCMAKE_FIND_ROOT_PATH=$prefix -DCMAKE_POSITION_INDEPENDENT_CODE=ON"
 
+# The policy for each dependency is declared once, in deps.mk's flag table. This
+# asks that table instead of keeping a second copy here: the two copies drifted
+# once (glog's WITH_UNWIND), and a drifted flag only shows up as a link failure on
+# whichever machine happens to have the package the flag depends on.
 dep_flags() {
-	case "$1" in
-		glog)        echo "-DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DWITH_GFLAGS=OFF -DWITH_UNWIND=none" ;;
-		leveldb)     echo "-DLEVELDB_BUILD_BENCHMARKS=OFF -DLEVELDB_BUILD_TESTS=OFF" ;;
-		marisa-trie) echo "-DBUILD_TESTING=OFF -DENABLE_TOOLS=OFF" ;;
-		opencc)      echo "-DBUILD_SHARED_LIBS=OFF -DOPENCC_BUILD_DATA=OFF -DOPENCC_BUILD_TOOLS=OFF" ;;
-		yaml-cpp)    echo "-DYAML_CPP_BUILD_CONTRIB=OFF -DYAML_CPP_BUILD_TESTS=OFF -DYAML_CPP_BUILD_TOOLS=OFF" ;;
-	esac
+	make -C "$rime_root" -f deps.mk --no-print-directory print-flags DEP="$1"
 }
 
 jobs=$(nproc 2>/dev/null || echo 4)
 
+# googletest is in deps.mk's list but not here: this configure sets
+# BUILD_TEST=OFF, so no rime_test target needs it on the device side.
 for dep in glog leveldb marisa-trie opencc yaml-cpp; do
 	echo "== $dep ($abi) =="
-	cmake -S "$rime_root/deps/$dep" -B "$build/$dep" $fresh $common $(dep_flags "$dep")
+	flags=$(dep_flags "$dep")
+	# An empty flag list would make the cmake line above succeed with defaults:
+	# silence here is not a pass, so refuse before configuring.
+	[ -n "$flags" ] || { echo "deps.mk declares no build flags for $dep" >&2; exit 1; }
+	cmake -S "$rime_root/deps/$dep" -B "$build/$dep" $fresh $common $flags
 	cmake --build "$build/$dep" --target install -j"$jobs"
 done
 
