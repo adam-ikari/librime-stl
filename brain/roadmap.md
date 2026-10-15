@@ -2,6 +2,15 @@
 slug: roadmap
 title: Roadmap
 role: milestones
+updated: "2026-10-15T02:42:59"
+---
+
+# Roadmap
+
+---
+slug: roadmap
+title: Roadmap
+role: milestones
 updated: "2026-10-15T01:34:33"
 ---
 
@@ -24,11 +33,13 @@ gantt
   构建图边界 + 依赖来源硬门                :done, a8, 2026-10-14, 1d
   signal 替身补齐分组 connect              :done, a9, 2026-10-15, 1d
   librime-lua 进插件矩阵（桌面三图）       :done, c1, after a9, 1d
+  librime-lua 运行时门 e2e_lua             :done, c1b, after c1, 1d
   section 待办
   文言读音按清单分流到扩展词库             :b1, after a6, 14d
   档 B 之外的古读复核（freq 1000–5000）    :b2, after b1, 10d
   emoji 数据换 pin 的例行流程演练          :b3, after a6, 3d
   Android 侧 librime-lua 交叉 + lua schema smoke :c2, after c1, 21d
+  e2e_lua 接进 CI（standalone 插件图 job）  :c3, after c1b, 3d
 ```
 
 - **文言读音分流（b1）**：底本里的文言/古读属扩展词库范畴，不是错音。曾试 Unihan
@@ -49,7 +60,13 @@ gantt
   librime 不再携带 boost_regex，装了真 Boost 的机器上 merged 构建链不动工具、standalone
   插件 .so 带未定义 boost 符号直到 dlopen 才炸），而 `algorithm/string.hpp` 反过来**只能**
   当无 Boost 时的退路（header-only，且 librime-charcode 用 `boost::split`/`is_any_of`，
-  遮蔽它等于打挂一个我们并不支持的插件）。引擎头文件始终不准伪造 `namespace boost`。
-- **Android（c2）**：交叉图 `ENABLE_EXTERNAL_PLUGINS=OFF`，产物只有 `librime.so`，
-  所以带 lua 的 Android 是「另做一次插件交叉构建」，不是这里加一个开关。本机无 NDK，
-  这一步只能在 CI 里第一次跑；不要在没有可复现判据之前把它写进文档当已支持。
+  遮蔽它等于打挂一个我们并不支持的插件）。
+- **e2e_lua（c1b 已完成）**：c1 只到「能编能链」。把真的 `librime-lua.so` 装进真的引擎
+  跑起来的是 `test/e2e_lua.py`，本机 standalone 图六项全绿；契约与两条部署事实记在
+  [[plugin-runtime-contract]]，其中一条已测得的偏离是 `rime.lua` 里 ECMAScript 表达不了
+  的 pattern 会让宿主 SIGABRT。
+- **c3**：这道门现在只有人跑才跑。CI 的 macOS/Windows 走 `make test`，即默认
+  `BUILD_MERGED_PLUGINS=ON` + `ENABLE_EXTERNAL_PLUGINS=OFF`，插件编进 librime、从不
+  dlopen——正是当年「链接期看不见的 dlopen 陷阱」那种形态没被覆盖。加一个 job 需要
+  `-DENABLE_EXTERNAL_PLUGINS=ON -DBUILD_MERGED_PLUGINS=OFF` 的构建与一次
+  `python3 test/e2e_lua.py`，不动既有 job 的形状。
