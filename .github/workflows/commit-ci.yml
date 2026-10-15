@@ -23,6 +23,14 @@ jobs:
       - name: Code style lint
         run: make clang-format-lint
 
+      # fork: deps.mk's <dep>_flags table is the single source of dependency
+      # configure policy (build-android.sh asks that table instead of keeping a
+      # second copy), so a policy flag written back into a recipe is a silent
+      # divergence between the two build graphs. This gate is cheap enough to run
+      # before any compiler does.
+      - name: Dependency flag policy lint
+        run: make lint-deps-flags
+
   linux:
     needs: lint
     uses: ./.github/workflows/linux-build.yml

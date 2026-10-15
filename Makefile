@@ -41,7 +41,7 @@ build ?= build
 .PHONY: all deps clean \
 librime librime-static \
 release debug test install uninstall \
-install-debug uninstall-debug
+install-debug uninstall-debug lint-deps-flags
 
 all: release
 
@@ -52,6 +52,16 @@ clang-format-lint:
 
 clang-format-apply:
 	find ${RIME_SOURCE_PATH} \! -path 'plugins/*/*' -a \( -name '*.cc' -o -name '*.h' \) | xargs clang-format --verbose -i
+
+# fork: deps.mk's <dep>_flags table is the only place a dependency's own
+# configure options are written -- build-android.sh reads that table, so a policy
+# flag restated in a recipe is a second copy of it, and two copies drift one
+# machine at a time (glog's WITH_UNWIND is the one that drifted). -DCMAKE_* is
+# excluded on purpose: build type, install prefix and PIC are per-graph settings
+# that belong to whichever recipe sets them.
+lint-deps-flags:
+	@awk 'BEGIN{t=0;b=0} /^[a-z][a-z0-9_-]*_flags[ \t]*=/{t=1} t{if($$0!~/\\[ \t]*$$/)t=0; next} /-D/{for(i=1;i<=NF;i++){f=$$i; sub(/[\\",; ]$$/,"",f); if(f~/^-D/ && f!~/^-DCMAKE/){print FILENAME":"NR": policy flag written outside the <dep>_flags table: "f; b=1}}} END{exit b}' deps.mk \
+	  || { echo "deps.mk: put the flag in the dependency's <dep>_flags entry, not in a recipe."; false; }
 
 deps:
 	$(MAKE) -f deps.mk
