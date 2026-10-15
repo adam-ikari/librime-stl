@@ -1,9 +1,14 @@
 FROM debian:12.15-slim
 
-# fork: no liblua5.4-dev, and librime-lua is out of the plugin set below -- it
-# includes <boost/regex.hpp> and assumes boost::signals2's connection shape,
-# which this fork ships neither of. octagram, charcode and predict stay, so the
-# external-plugin build path is still covered.
+# fork: librime-lua is back in the plugin set (see the note in commit-ci.yml for
+# the Boost side). It takes Lua from the distro here rather than from its
+# in-tree thirdparty/lua5.4, because install-plugins.sh does not run a plugin's
+# own action-install script -- which makes this the only graph that exercises
+# the plugin's find_package(PkgConfig) Lua branch. octagram, charcode and
+# predict stay; charcode is the one plugin that really needs Boost (boost::locale),
+# so libboost-locale-dev remains, and libboost-regex-dev remains because this
+# graph is the real-Boost datapoint: the plugin shim is applied whether or not
+# /usr/include/boost exists, so the image proves the override works.
 RUN DEBIAN_FRONTEND=noninteractive apt-get update \
   && apt-get install -y --no-install-recommends \
   ca-certificates \
@@ -17,6 +22,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get update \
   libboost-locale-dev \
   libgoogle-glog-dev \
   libgtest-dev \
+  liblua5.4-dev \
   libyaml-cpp-dev \
   libleveldb-dev \
   libmarisa-dev \
@@ -27,6 +33,7 @@ WORKDIR /librime
 COPY . .
 
 RUN bash install-plugins.sh \
+  hchunhui/librime-lua \
   rime/librime-charcode \
   lotem/librime-octagram \
   rime/librime-predict

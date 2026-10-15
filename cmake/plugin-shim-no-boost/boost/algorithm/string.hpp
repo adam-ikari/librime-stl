@@ -7,8 +7,11 @@
 // plugins/CMakeLists.txt, and only where no real Boost headers exist — lets an
 // unmodified plugin build against a Boost-free toolchain.
 //
-// It is deliberately never installed: the fork does not claim to provide Boost,
-// and a consumer that has Boost keeps using the real header.
+// It is deliberately never installed: the fork does not claim to provide Boost.
+// This one is a fallback rather than an override -- plugins/CMakeLists.txt adds
+// this directory only where the probe finds no real boost/algorithm/string.hpp,
+// because boost::algorithm is header-only and a plugin that uses more than these
+// two helpers (librime-charcode calls boost::split) needs the real library.
 #ifndef RIME_PLUGIN_SHIM_BOOST_ALGORITHM_STRING_HPP_
 #define RIME_PLUGIN_SHIM_BOOST_ALGORITHM_STRING_HPP_
 

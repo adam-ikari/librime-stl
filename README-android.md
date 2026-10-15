@@ -58,6 +58,10 @@ The script ends by reading its own output, and fails if any of this is untrue:
   cross-built static and absorbed into the library;
 - `rime_get_api` is exported as an unmangled C symbol.
 
+The graph is the engine alone: `ENABLE_EXTERNAL_PLUGINS` stays off, so this
+artifact neither loads nor contains plugins, and a Lua-enabled Android build is a
+separate cross build of the plugin, not a flag here.
+
 Which is what the JNI layer needs to know: the consumer links `librime_jni.so`
 against this `librime.so` and **does not link `libopencc.a`** — opencc's code is
 already inside `librime.so`, and nothing else provides it. The runtime side is

@@ -39,19 +39,19 @@ jobs:
     needs: lint
     uses: ./.github/workflows/macos-build.yml
     with:
-      # fork: hchunhui/librime-lua is out of the matrix. The plugin includes
-      # <boost/regex.hpp> and registers its LuaLibrary against boost::signals2's
-      # connection shape, while this fork ships no Boost and rime::connection
-      # comes from <rime/signal.hpp> -- it does not compile against either.
-      # octagram and predict stay in, so the external-plugin build path is still
-      # covered on every platform.
-      rime_plugins: lotem/librime-octagram rime/librime-predict
+      # fork: librime-lua is back in. Its Boost use is answered without Boost --
+      # <rime/signal.hpp> grew the grouped connect its Lua binding calls, and
+      # cmake/plugin-shim/boost/{signals2,regex}.hpp answer the two names it
+      # includes, so nothing here needs a Boost tree. The plugin's own
+      # action-install.sh fetches in-tree Lua 5.4, which is what makes the
+      # external-plugin build path meaningful on this runner.
+      rime_plugins: hchunhui/librime-lua lotem/librime-octagram rime/librime-predict
 
   windows:
     needs: lint
     uses: ./.github/workflows/windows-build.yml
     with:
-      rime_plugins: lotem/librime-octagram rime/librime-predict
+      rime_plugins: hchunhui/librime-lua lotem/librime-octagram rime/librime-predict
 
   android:
     needs: lint

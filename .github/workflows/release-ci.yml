@@ -15,14 +15,14 @@ jobs:
   macos:
     uses: ./.github/workflows/macos-build.yml
     with:
-      # fork: no librime-lua -- see the note in commit-ci.yml. It needs Boost and
-      # boost::signals2's connection shape, neither of which this fork provides.
-      rime_plugins: lotem/librime-octagram rime/librime-predict
+      # fork: same plugin set as commit-ci.yml -- see the note there for why
+      # librime-lua no longer needs Boost.
+      rime_plugins: hchunhui/librime-lua lotem/librime-octagram rime/librime-predict
 
   windows:
     uses: ./.github/workflows/windows-build.yml
     with:
-      rime_plugins: lotem/librime-octagram rime/librime-predict
+      rime_plugins: hchunhui/librime-lua lotem/librime-octagram rime/librime-predict
 
   release:
     needs: [macos, windows]
