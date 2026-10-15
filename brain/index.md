@@ -1,6 +1,6 @@
 # Brain Index
 
-_Auto-generated. Last updated 2026-10-15T00:16:27.421Z._
+_Auto-generated. Last updated 2026-10-15T01:33:23.821Z._
 
 - [android-jni-consumer-demand](pages/android-jni-consumer-demand.md) — category: reference | tags: [android, jni, plugins, opencc] | ## 取证范围与可信度
 - [dict-reproducibility-gates](pages/dict-reproducibility-gates.md) — category: decision | tags: [dict, gates] | ## 契约

@@ -5,7 +5,7 @@ category: decision
 status: active
 tags: [engine, upstream, style]
 created: "2026-10-13T05:37:49"
-updated: "2026-10-15T00:16:27"
+updated: "2026-10-15T01:33:23"
 ---
 
 <!-- compiled_truth -->
@@ -163,3 +163,8 @@ schema/default/dict 文件是逐个 `git add -f` 提进来的。在本目录新�
   summary: "分组 connect 落地：src/rime/signal.hpp 新增 connect(int group, slot)——按组升序发射、同组保持连接顺序、connect(slot) 归 group 0；test/signal_test.cc 四例钉住分组顺序、断开只跳过该槽、发射参数，rime_test 150 例全绿。librime-lua 剩余两点也测清：它从不 include <boost/signals2.hpp>（types.cc:1480/1485 的 boost::signals2::connection 是从上游 common.h 继承的名字），显式的 Boost 头只有 regex（types.cc:22）与 optional（lib/luatype_boost_optional.h:5），所以这两条走 cmake/plugin-shim 而非引擎头。附带一条坑：在 namespace rime 之外写 signal<void(...)> 会被 <csignal> 的 ::signal 抢走解析，测试须写 rime::signal<...>。"
   source: "signal.hpp + librime-lua@hchunhui/master 实测"
   affects: [upstream-alignment]
+
+- time: 2026-10-15T01:33:23
+  kind: decision
+  summary: "librime-lua 回到插件矩阵（commit-ci/release-ci 的 macos+windows，Docker 图另加 liblua5.4-dev）。插件侧 Boost 应答拆成两组：cmake/plugin-shim 无条件在 include 路径上（regex.hpp→std::regex+PCRE 翻译，signals2.hpp→rime::connection 别名，只对 C++ TU force-include）；cmake/plugin-shim-no-boost 只在探针找不到真 boost 时加（algorithm/string.hpp 桩）。理由是被测出来的，不是偏好：本 fork 的 librime 不再携带 boost_regex（上游携带，所以这插件从不链它），于是真 Boost 在场时 merged 构建链 rime_console/rime_deployer 报 undefined reference to boost::re_detail_...::raise_runtime_error，standalone 插件 .so 能链但带未定义 boost 符号且 NEEDED 无 libboost_regex，dlopen 才炸；algorithm 反过来是 header-only 且 charcode 用 boost::split/is_any_of，遮蔽它会让一个需要比两个 helper 更多的插件编译不过。"
+  affects: [plugins/CMakeLists.txt, cmake/plugin-shim, cmake/plugin-shim-no-boost, Dockerfile, README.md, README-android.md]

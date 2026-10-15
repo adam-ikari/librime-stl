@@ -2,7 +2,7 @@
 slug: roadmap
 title: Roadmap
 role: milestones
-updated: "2026-10-15T00:16:13"
+updated: "2026-10-15T01:34:33"
 ---
 
 # Roadmap
@@ -23,11 +23,12 @@ gantt
   源码注释策略（中译英 + fork 标记）       :done, a7, 2026-10-13, 1d
   构建图边界 + 依赖来源硬门                :done, a8, 2026-10-14, 1d
   signal 替身补齐分组 connect              :done, a9, 2026-10-15, 1d
+  librime-lua 进插件矩阵（桌面三图）       :done, c1, after a9, 1d
   section 待办
   文言读音按清单分流到扩展词库             :b1, after a6, 14d
   档 B 之外的古读复核（freq 1000–5000）    :b2, after b1, 10d
   emoji 数据换 pin 的例行流程演练          :b3, after a6, 3d
-  librime-lua 进矩阵（Lua 5.4 交叉 + shim） :c1, after a9, 21d
+  Android 侧 librime-lua 交叉 + lua schema smoke :c2, after c1, 21d
 ```
 
 - **文言读音分流（b1）**：底本里的文言/古读属扩展词库范畴，不是错音。曾试 Unihan
@@ -37,11 +38,18 @@ gantt
 - **b3**：`emoji-base` 换 SHA 等于换 emoji 覆盖范围，要走 `make check` + smoke，且
   注意上游默认分支 `master` 的覆盖比 `Emoji-14.0` 小（见 [[vendored-upstream-pins]]）。
 
-- **librime-lua（c1）**：按 [[background]] 原则 1，lua 出局不能拿 Boost 当理由。实测缺口
-  只剩三条，第一条已补：`src/rime/signal.hpp` 的 `connect(group, slot)`（`test/signal_test.cc`
-  钉住分组顺序与 connection 生命周期）；接着是 `cmake/plugin-shim/boost/` 应答
-  `signals2.hpp`（别名到 `rime::connection`——插件从不自己 include 它，名字是从上游
-  `common.h` 继承的）与 `optional.hpp`（`std::optional`），`regex.hpp` 要 `std::regex` 加
-  已有的 PCRE→ECMAScript 转换；最后才是把 Lua 5.4 进 `deps/` 与那张 flag 表并交叉编译验证，
-  再回插件矩阵跑一份带 lua 钩子的 schema smoke。Shim 只能出现在插件图里，引擎头文件不准
-  伪造 `namespace boost`——装了真 Boost 的消费方会撞上两个不同的 `boost::signals2::connection`。
+- **librime-lua（c1 已完成，桌面图）**：按 [[background]] 原则 1，lua 出局不能拿 Boost
+  当理由，实测三条缺口都已合：`src/rime/signal.hpp` 的 `connect(group, slot)`
+  （`test/signal_test.cc` 钉住分组顺序与 connection 生命周期）；插件图的
+  `cmake/plugin-shim/boost/signals2.hpp` 别名到 `rime::connection`（插件从不自己 include
+  它，名字是从上游 `common.h` 继承的，所以只能 force-include，且只对 C++ TU——同目录要编
+  Lua 的 `.c`）；`regex.hpp` 用 `std::regex` 加已有的 PCRE→ECMAScript 转换。
+  `optional.hpp` 不应答：插件自己在 C++17 下走 `std::optional` 分支（`src/optional.h:1`），
+  那是条死路。两个反直觉的点是被测出来的：regex 必须**无条件**遮蔽真 Boost（本 fork 的
+  librime 不再携带 boost_regex，装了真 Boost 的机器上 merged 构建链不动工具、standalone
+  插件 .so 带未定义 boost 符号直到 dlopen 才炸），而 `algorithm/string.hpp` 反过来**只能**
+  当无 Boost 时的退路（header-only，且 librime-charcode 用 `boost::split`/`is_any_of`，
+  遮蔽它等于打挂一个我们并不支持的插件）。引擎头文件始终不准伪造 `namespace boost`。
+- **Android（c2）**：交叉图 `ENABLE_EXTERNAL_PLUGINS=OFF`，产物只有 `librime.so`，
+  所以带 lua 的 Android 是「另做一次插件交叉构建」，不是这里加一个开关。本机无 NDK，
+  这一步只能在 CI 里第一次跑；不要在没有可复现判据之前把它写进文档当已支持。
