@@ -5,7 +5,7 @@ category: decision
 status: active
 tags: [build, opencc, android, ci]
 created: "2026-10-14T07:08:55"
-updated: "2026-10-14T07:09:19"
+updated: "2026-10-14T11:07:28"
 ---
 
 <!-- compiled_truth -->
@@ -73,6 +73,44 @@ define（`src/rime/build_config.h.in` 里根本没有 opencc 项），唯一的�
 `rime_test` 的 `test/opencc/` fixture。
 
 
+## 每个依赖的配置策略只有一个来源
+
+`deps.mk` 的 `<dep>_flags` 表是唯一声明处，`build-android.sh` 通过
+`make -f deps.mk print-flags DEP=x` 读取它，不再自己抄一份 case 表；`print-flags`
+对未知 DEP 用 `$(error)` 硬失败，交叉脚本对空 flag 列表也拒绝继续（沉默不等于通过）。
+动机是这两份拷贝漂移过一次：glog 的 `WITH_UNWIND` 只在 host 侧有，交叉侧没有——而
+漂移只在「恰好装了相关包的机器」上表现为链接失败，所以它必须结构上不可能发生。
+`BUILD_SHARED_LIBS=OFF` 从「CMake 默认值」升为显式声明：静态归档此前是靠变量未设置
+而偶然静态的，任何 toolchain 文件或调用方把它打开，交叉构建就会静默链进共享对象。
+
+两条让「同一个表对两个图给出同一个文本」成立的细节，改的人容易顺手改坏：存在性判断用
+`$(value X_flags)`（读定义、不展开），输出用 `$($(DEP)_flags))`（展开，和 recipe 一样）——
+若两处都用 `$(value)`，表里引用其它 make 变量时打印的是字面 `$(prefix)`，交叉脚本把它
+不加引号拼进 cmake 命令行后，shell 会当命令替换执行。同理表里每行必须是一个不含空格的
+flag。依赖**集合**仍是分别声明的（`rime_deps` 六个含 googletest，交叉循环五个，因为引擎
+configure 是 `BUILD_TEST=OFF`），这个差别已在脚本里写明；集合漂移会撞
+`find_package(... REQUIRED)` 与 hermetic 门，是响亮的失败，真正静默的只有旗标漂移。
+
+
+
+## JNI 图只准编译 JNI 用得上的东西
+
+要求是「干净的构建、只编译 JNI 需要的内容」，落到这张图上就是**一个 `librime.so`，
+别的都不生成**：`googletest` 不交叉构建（引擎 configure 是 `BUILD_TEST=OFF`）；
+`tools/` 的六个命令行程序（`rime_console`/`rime_deployer`/`rime_dict_manager`/
+`rime_patch`/`rime_api_console`/`rime_table_decompiler`）在 `CMAKE_SYSTEM_NAME` 为
+`Android` 时根本不生成——此前它们照样被 configure 出来，边界全靠 `build-android.sh`
+记得写 `--target rime`；gflags 在声明了 `RIME_DEPS_PREFIX` 的图里**不再搜索**，因为
+该图用的 vendored glog 是 `WITH_GFLAGS=OFF`（`deps.mk`、`build.bat` 都这么钉），没有任何
+rime 源文件 include `gflags/gflags.h`，搜索只会让 host 的 gflags 走进交叉图并被来源门
+判为越界（本机实测：`Gflags_LIBRARY=/usr/lib/x86_64-linux-gnu/libgflags.a` → FATAL）。
+host 图两样都保留：`tools/` 照生成，gflags 照搜索——某些发行版的静态 `libglog.a` 带着
+gflags 引用，链它需要 `-lgflags`。判据选 `CMAKE_SYSTEM_NAME`/`RIME_DEPS_PREFIX` 而不是 `CMAKE_CROSSCOMPILING`：Docker 里的
+MinGW 构建也是 cross，用它会把收窄扩大到 Windows 图。CI 没有任何 step 引用那六个可执行文件，
+所以「Windows 产物是否包含它们」未证实——不拿未证实的主张当理由，只把改动限制在要求点名的
+Android 图内。
+
+
 ## Timeline
 
 - time: 2026-10-14T07:08:55
@@ -85,4 +123,28 @@ define（`src/rime/build_config.h.in` 里根本没有 opencc 项），唯一的�
   kind: decision
   summary: Rewrote compiled_truth to the new best understanding
   source: "本轮 hermetic 构建改造（cmake/RimeDepProvenance.cmake + build-android.sh + CI）"
+  affects: [hermetic-build-graphs]
+
+- time: 2026-10-14T08:16:40
+  kind: decision
+  summary: Rewrote compiled_truth to the new best understanding
+  source: "deps.mk 单来源 flag 表 + build-android.sh 委托 print-flags（本机 hermetic 重跑：7 归档、rime_test 通过、resolved 1.1.9 == pin）"
+  affects: [hermetic-build-graphs]
+
+- time: 2026-10-14T10:07:16
+  kind: decision
+  summary: Rewrote compiled_truth to the new best understanding
+  source: "评审修正：print-flags 展开语义、词分割约束、依赖集合差别的说明（deps.mk / build-android.sh 注释）"
+  affects: [hermetic-build-graphs]
+
+- time: 2026-10-14T11:07:09
+  kind: decision
+  summary: Rewrote compiled_truth to the new best understanding
+  source: "CMakeLists.txt tools/gflags 两处收窄 + README-android.md；本机证据：prefix 图 configure 由 FATAL 变通过、--target rime 链出的库 NEEDED 无 gflags、hermetic+ctest 全绿、host 图行为不变"
+  affects: [hermetic-build-graphs]
+
+- time: 2026-10-14T11:07:28
+  kind: decision
+  summary: Rewrote compiled_truth to the new best understanding
+  source: "自我更正：MinGW tools/ 打包主张无证据，改为按范围收窄陈述"
   affects: [hermetic-build-graphs]

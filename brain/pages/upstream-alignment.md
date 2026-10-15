@@ -5,7 +5,7 @@ category: decision
 status: active
 tags: [engine, upstream, style]
 created: "2026-10-13T05:37:49"
-updated: "2026-10-14T02:13:22"
+updated: "2026-10-15T00:16:27"
 ---
 
 <!-- compiled_truth -->
@@ -62,9 +62,21 @@ CI lint 用 **clang-format 23**（`action-install-clang-format.sh` 走 `sudo apt
 ## 边界延伸：第三方插件用 Boost 当助手还是当语义
 
 判据是这一条，不是「是不是我们的文件」：`boost::starts_with` 之类字符串助手，fork 已经
-在 `namespace boost` 下提供，可以应答；`boost::regex`、signals2 的 connection 形状、
-boost::locale/asio 承载的是语义，不假装能替，插件因此留在矩阵外（librime-lua 已摘，
-librime-charcode 只在装了真 Boost 的 Docker 里编）。
+在 `namespace boost` 下提供，可以应答；承载真语义的 `boost::locale`/asio（librime-charcode）
+不假装能替，因此留在矩阵外，只在装了真 Boost 的 Docker 里编。
+
+librime-lua 的排除**不是** Boost 语义问题（本条 2026-10-14 翻案，先前记成「`boost::regex` 与
+signals2 的 connection 形状不可替」）。对其 master 实测：Boost 面只有 3 文件 / ~70 行 ——
+`src/types.cc:22` 的 `boost::regex` 用在 regex API 函数里，`std::regex` 加本 fork 已有的
+PCRE→ECMAScript 转换即可覆盖（`regex_replace` 的 `$1` 格式本就等同 ECMAScript）；
+`src/optional.h` 的 `boost::optional` 是 `__cplusplus < 201703` 的退化分支，C++17 构建下插件
+自己已经选 `std::optional`；`boost::signals2::connection` 不是插件带进来的依赖，而是它从
+librime 自己的头（`src/rime/common.h` 的 Notifier typedef）继承的名字，指向的正是本 fork 的替代
+signal。所以真缺口在我们这边：`src/rime/signal.hpp:57` 只有 `connect(slot)`，而 librime-lua 的
+`raw_connect` 要调 `connect(group, slot)`；另一条是没有先例——没人做过「无 Boost 树的 Lua 5.4
+Android 交叉」（Trime 自带 `cmake/Boost.cmake` 继续编真 Boost，fcitx5-android 对 librime-lua 的
+补丁只是 CMake 层面的 `find_package(Lua CONFIG)`/`-ffile-prefix-map`）。结论：支持 lua 是范围
+决定，不是被 Boost 挡住。
 
 插件源文件不属于本仓，改不动它写的 `#include <boost/algorithm/string.hpp>`，于是在
 同一路径上给出答案：`cmake/plugin-shim/boost/algorithm/string.hpp` 只 include
@@ -132,4 +144,22 @@ schema/default/dict 文件是逐个 `git add -f` 提进来的。在本目录新�
   kind: decision
   summary: Rewrote compiled_truth to the new best understanding
   source: brain update-truth
+  affects: [upstream-alignment]
+
+- time: 2026-10-14T17:27:21
+  kind: decision
+  summary: Rewrote compiled_truth to the new best understanding
+  source: "对 librime-lua master 实测（gh api 逐文件）+ signal.hpp 现状核对"
+  affects: [upstream-alignment]
+
+- time: 2026-10-14T17:27:21
+  kind: reversal
+  summary: "推翻旧记：librime-lua 留在插件矩阵外不是 Boost 语义不可替，实测 Boost 面 3 文件/~70 行且多数是本 fork 已具备的能力；真缺口是 src/rime/signal.hpp 缺 grouped connect 与无 Boost 交叉构建 Lua 的先例"
+  source: "用户指正 + 取证"
+  affects: [upstream-alignment]
+
+- time: 2026-10-15T00:16:27
+  kind: decision
+  summary: "分组 connect 落地：src/rime/signal.hpp 新增 connect(int group, slot)——按组升序发射、同组保持连接顺序、connect(slot) 归 group 0；test/signal_test.cc 四例钉住分组顺序、断开只跳过该槽、发射参数，rime_test 150 例全绿。librime-lua 剩余两点也测清：它从不 include <boost/signals2.hpp>（types.cc:1480/1485 的 boost::signals2::connection 是从上游 common.h 继承的名字），显式的 Boost 头只有 regex（types.cc:22）与 optional（lib/luatype_boost_optional.h:5），所以这两条走 cmake/plugin-shim 而非引擎头。附带一条坑：在 namespace rime 之外写 signal<void(...)> 会被 <csignal> 的 ::signal 抢走解析，测试须写 rime::signal<...>。"
+  source: "signal.hpp + librime-lua@hchunhui/master 实测"
   affects: [upstream-alignment]

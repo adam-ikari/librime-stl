@@ -2,7 +2,7 @@
 slug: background
 title: Project background
 role: project background
-updated: "2026-10-13T05:37:10"
+updated: "2026-10-15T00:15:46"
 ---
 
 # Project background
@@ -38,3 +38,15 @@ updated: "2026-10-13T05:37:10"
 
 term-ime（装 `rime-data` 并链接本 fork 的 librime）；以及任何需要「无 Boost 的
 librime」的嵌入方。
+
+## 原则
+
+1. **去 Boost 是手段，不是排除理由。** 上游用到 Boost 的地方一律换成 STL 或更轻的库
+   （`std::regex`、`std::optional`、`src/rime/*.hpp` 里的自写 shim）。换不动的判据是
+   「这个语义本 fork 没有」（boost::locale、asio），才留在插件矩阵外；某功能不能因为
+   「它用到 Boost」就出局——那是待补的缺口，不是边界。
+2. **交叉编译与 Android JNI 的构建体验是产品目标**，与引擎功能同优先级：三张编译图边界
+   清楚、每个依赖的配置策略只有一个来源、产物能自证（判据见 [[hermetic-build-graphs]]）。
+3. **与上游保持可合并**，API、词库、源码升级三条都算：差异逐字节可枚举
+   （`git diff upstream/master HEAD`），而替代实现必须覆盖上游同名符号被真实用到的 API
+   面——覆盖不足，插件和未来的一次 upgrade 都会撞墙。

@@ -1,7 +1,8 @@
 # Brain Index
 
-_Auto-generated. Last updated 2026-10-14T07:09:36.971Z._
+_Auto-generated. Last updated 2026-10-15T00:16:27.421Z._
 
+- [android-jni-consumer-demand](pages/android-jni-consumer-demand.md) — category: reference | tags: [android, jni, plugins, opencc] | ## 取证范围与可信度
 - [dict-reproducibility-gates](pages/dict-reproducibility-gates.md) — category: decision | tags: [dict, gates] | ## 契约
 - [emoji-filter-dictionary](pages/emoji-filter-dictionary.md) — category: decision | tags: [dict, opencc, emoji] | ## 结论
 - [hermetic-build-graphs](pages/hermetic-build-graphs.md) — category: decision | tags: [build, opencc, android, ci] | ## 三张编译图（不可混淆）
