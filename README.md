@@ -140,10 +140,26 @@ dependency question rather than a behaviour change.
     plugin asking for `<boost/algorithm/string.hpp>` only to call
     `boost::starts_with` is answered from [cmake/plugin-shim](cmake/plugin-shim)
     where the toolchain has no Boost (that header is never installed, and a real
-    Boost keeps being used where one exists). Plugins whose Boost use carries
-    semantics this fork does not have -- librime-lua's `boost::regex` and
-    boost::signals2 connection shape, librime-charcode's boost::locale -- are out
-    of the plugin matrix instead.
+    Boost keeps being used where one exists). Two plugins are out of the plugin
+    matrix, for different reasons. librime-charcode's `boost::locale` really does
+    carry semantics this fork does not have. librime-lua's exclusion is a scope
+    decision, not a Boost impossibility: measured against its current master, its
+    Boost use is 3 files / ~70 lines -- `boost::regex` in the regex API functions
+    (which `std::regex` plus this fork's PCRE→ECMAScript translation covers, and
+    `regex_replace`'s `$1` format already matches ECMAScript), a `boost::optional`
+    branch that is dead in a C++17 build because the plugin itself selects
+    `std::optional` there, and `boost::signals2::connection` which the plugin does
+    not bring in but inherits from librime's own headers, i.e. it names *this*
+    fork's replacement signal. The gaps of ours are being closed in order:
+    [src/rime/signal.hpp](src/rime/signal.hpp) now has the grouped
+    `connect(group, slot)` the plugin's Lua binding calls, ordered the way
+    signals2 orders and pinned by `test/signal_test.cc`. What is left is to
+    answer `boost/signals2.hpp` (an alias of that same `rime::connection`) and
+    `boost/optional.hpp` from the plugin-shim -- in the plugin graph only, because
+    an engine header that fakes `namespace boost` would hand a consumer with real
+    Boost two different `boost::signals2::connection` types -- and to cross-build
+    Lua 5.4, which nobody has done for Android without a Boost tree (Trime still
+    builds Boost; fcitx5-android's patches to librime-lua are CMake-level only).
   - **Regex compatibility layer.** Schema-supplied patterns go through a shared
     PCRE→ECMAScript translation ([src/rime/pcre_translator.hpp](src/rime/pcre_translator.hpp)),
     and a bad pattern can no longer take the engine down with it.

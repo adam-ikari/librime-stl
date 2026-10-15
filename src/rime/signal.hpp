@@ -2,8 +2,10 @@
 // Minimal boost::signals2 replacement for this fork.
 //
 // Provides signal<Signature> and connection with the subset of the signals2 API
-// that librime uses:
+// that librime uses and that its plugin ecosystem asks for:
 //   - connect(slot) -> connection
+//   - connect(group, slot) -> connection  (grouped connect, emitted in group
+//     order -- see the comment on the overload)
 //   - connection::disconnect()  (removes that slot)
 //   - connection default-constructible / copyable (held as class members)
 //   - operator()(args...) to emit to all connected slots
@@ -54,9 +56,19 @@ class signal<void(Args...)> {
  public:
   using slot_type = std::function<void(Args...)>;
 
-  connection connect(slot_type slot) {
+  connection connect(slot_type slot) { return connect(0, std::move(slot)); }
+
+  // boost::signals2 emits slots by ascending group, and slots connected in one
+  // group in the order they were connected; connect(slot) joins group 0. The
+  // engine never passes a group, but librime-lua binds
+  // notifier:connect(fn, group), whose scripts do rely on that order.
+  connection connect(int group, slot_type slot) {
     auto ctrl = std::make_shared<slot_control>();
-    slots_.push_back({ctrl, std::move(slot)});
+    auto at = slots_.begin();
+    while (at != slots_.end() && at->group <= group) {
+      ++at;
+    }
+    slots_.insert(at, {ctrl, group, std::move(slot)});
     return connection(ctrl);
   }
 
@@ -73,6 +85,7 @@ class signal<void(Args...)> {
  private:
   struct Entry {
     std::shared_ptr<slot_control> ctrl;
+    int group;
     slot_type fn;
   };
   mutable std::vector<Entry> slots_;
