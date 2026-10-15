@@ -168,11 +168,14 @@ dependency question rather than a behaviour change.
     optional either -- this fork's librime no longer carries boost_regex, which
     upstream did, so a plugin bound to the real header either fails to link (with
     merged plugins) or links and dies at `dlopen` (standalone), both measured.
-    CI builds the plugin; `test/e2e_lua.py` is what loads it -- it drives the
-    standalone `librime-lua.so` through `rime_console` and asserts the loader
-    accepts it, `rime_api.regex_*` works through the shim (`\l`, `\u`, `$1`), and
-    `connect(fn, group)` emits in signals2's order through the binding that
-    actually calls it. One divergence is measured rather than assumed: a pattern
+    `make test` builds the plugin; `test/e2e_lua.py` is what loads it, and the
+    macOS job runs that step -- it drives the standalone `librime-lua.dylib`
+    through `rime_console` and asserts the loader accepts it, `rime_api.regex_*`
+    works through the shim (`\l`, `\u`, `$1`), and `connect(fn, group)` emits in
+    signals2's order through the binding that actually calls it. The two Windows
+    jobs are the merged graph and the Linux jobs install no plugins, so this is
+    the one place the shape is covered. One divergence is measured rather than
+    assumed: a pattern
     ECMAScript cannot express aborts the host, since the plugin constructs the
     regex outside any catch and a C++ exception does not survive the Lua VM's C
     frames -- Lua's `pcall` cannot contain it. The harness therefore asserts the
