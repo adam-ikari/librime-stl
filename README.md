@@ -168,6 +168,15 @@ dependency question rather than a behaviour change.
     optional either -- this fork's librime no longer carries boost_regex, which
     upstream did, so a plugin bound to the real header either fails to link (with
     merged plugins) or links and dies at `dlopen` (standalone), both measured.
+    CI builds the plugin; `test/e2e_lua.py` is what loads it -- it drives the
+    standalone `librime-lua.so` through `rime_console` and asserts the loader
+    accepts it, `rime_api.regex_*` works through the shim (`\l`, `\u`, `$1`), and
+    `connect(fn, group)` emits in signals2's order through the binding that
+    actually calls it. One divergence is measured rather than assumed: a pattern
+    ECMAScript cannot express aborts the host, since the plugin constructs the
+    regex outside any catch and a C++ exception does not survive the Lua VM's C
+    frames -- Lua's `pcall` cannot contain it. The harness therefore asserts the
+    part that must hold either way: never silently matched.
     Lua itself comes from the plugin's in-tree `thirdparty/lua5.4` on macOS and
     Windows and from the distro package in the Docker graph. What is still open is
     Android: the JNI graph builds `librime.so` only, so a lua-enabled Android
@@ -176,7 +185,9 @@ dependency question rather than a behaviour change.
     CMake-level only).
   - **Regex compatibility layer.** Schema-supplied patterns go through a shared
     PCRE→ECMAScript translation ([src/rime/pcre_translator.hpp](src/rime/pcre_translator.hpp)),
-    and a bad pattern can no longer take the engine down with it.
+    and a bad pattern can no longer take the engine down with it -- the deployment
+    task catches it, so an unsupported pattern costs one schema. Patterns arriving
+    from `rime.lua` do not have that catch; see the librime-lua bullet.
   - **OpenCC vendored** ([deps/opencc](deps/opencc)), with the `.ocd2` binaries it
     would otherwise generate at build time committed under `dict/opencc/`, plus a
     mirror of opencc's install directory under `test/opencc/` for `rime_test`

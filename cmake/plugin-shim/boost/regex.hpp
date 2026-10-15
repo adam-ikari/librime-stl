@@ -11,8 +11,16 @@
 // boost::regex defaults to the perl grammar, which accepts constructs ECMAScript
 // has no spelling for -- lookbehind, possessive and atomic quantifiers, \p{...}.
 // Such a pattern raises std::regex_error at construction instead of matching.
-// That is the policy this fork already applies to schema patterns: an
-// unsupported pattern fails loudly rather than silently matching something else.
+// The shape of that failure was measured, because it is not the same shape a
+// schema pattern gets: a schema pattern is compiled inside a deployment task
+// that catches std::exception, so an unsupported one costs one schema and the
+// engine keeps running. Here nothing catches -- the plugin's three bindings call
+// the constructor directly (src/types.cc:2403-2427) and a C++ exception cannot
+// unwind through the Lua VM's C frames, so Lua's pcall does not contain it and
+// the host process aborts. Upstream aborts identically for any pattern
+// boost::regex itself rejects; what this shim adds is precisely "valid in the
+// perl grammar, invalid in ECMAScript". test/e2e_lua.py asserts the part that
+// must hold either way: an unsupported pattern is never silently matched.
 // The replacement format string is not affected: `$1`/`$&` mean the same thing
 // in ECMAScript as in boost::regex, and iterating a match yields sub_matches that
 // convert to std::string the way the plugin's `for (auto str : sm)` expects.
