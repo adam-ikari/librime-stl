@@ -29,5 +29,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends cmake ninja-build python3
 
+      # pypinyin generates the readings for dict/thuocl.dict.yaml; its version
+      # decides polyphone readings, so it is pinned in sources.lock and read
+      # back here rather than restated.
+      - name: Install the dictionary's reading generator
+        run: |
+          version="$(awk -F' *= *' '$1 == "thuocl-pypinyin" {print $2}' dict/tools/sources.lock)"
+          python3 -m pip install --break-system-packages "pypinyin==$version"
+
       - name: Regenerate and compare
         run: make -C dict/tools check

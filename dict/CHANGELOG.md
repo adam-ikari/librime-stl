@@ -2,6 +2,31 @@
 
 词库与 librime 补丁同仓、共用一个 tag —— 版本号只在本仓的 tag 上。
 
+## dict-2026.11.09
+
+新增 THUOCL 长尾补充表（纯数据，无新引擎依赖）。
+
+- **`thuocl.dict.yaml`（新产物，74938 条）**：词表来自
+  [THUNLP/THUOCL](https://github.com/thunlp/THUOCL) `a30ce79d`（**MIT**，11 个
+  data 文件逐字 vendor 在 `tools/thuocl-src/`，`tools/sources.lock` 新增
+  `thuocl` / `thuocl-pypinyin` 两个坐标）。THUOCL 只有词与语料词频，拼音列由
+  `tools/build_thuocl.py` 用 pypinyin 0.55.0 生成（版本不符即拒绝产出）。
+  `luna_pinyin.dict.yaml` 的表头加 `import_tables: [thuocl]`，由
+  `convert_dict.py` 生成而不是手改产物。
+- **只取 4 字以上、只补已知词表之外**。整表导入时 2–3 字的语料碎片会压过同键
+  常用词（实测 果后>过后、源通>圆通、内都>内斗、一公司>一共是）；取 4 字后
+  回退全部消失，收益保留：`feigongjingji` 非公经济、`xiaoweihanyang` 小尾寒羊、
+  `wenqunadeqingruxu` 问渠哪得清如许、`chengbaojingyingquan` 承包经营权、
+  `shixuexingxiuke` 失血性休克（此前分别给出 绯红经济 / 学位汗颜 / 免去拿的侵入于 /
+  承包经营全 / 是血腥休克）。95613 个 4 字以上词里 20675 个已由 luna/essay 覆盖。
+- **代价实测**（同 schema、干净用户目录）：`table.bin` 22.0→25.7 MB，首启部署
+  6.1→7.0 s，部署峰值 RSS 438→482 MB；常用词候选顺序不变。
+- **两道门都扩**：`make check` 多比对一份产物；`smoke` 的部署多装
+  `thuocl.dict.yaml`，新增 `THUOCL_PROBES` 双向断言（长尾词必须出、2–3 字碎片
+  不得压过常用词）。已验证去掉导入时三条长尾探针立刻红。
+- **授权**：`dict/LICENSE` 增两行（产物与 vendored 源，均 MIT），`make package`
+  把 THUOCL 的 LICENSE 作为 `LICENSE-thuocl.txt` 放进 tarball。
+
 ## dict-2026.10.13
 
 新增 emoji 扩展词典，可开关（纯数据 + 配置接线，不涉引擎）。

@@ -31,6 +31,9 @@ name: luna_pinyin
 version: "2024.02.10"
 sort: by_weight
 use_preset_vocabulary: true
+# Long-tail supplement (MIT word list, see tools/build_thuocl.py).
+import_tables:
+  - thuocl
 ...
 〇	ling
 㐀	qiu

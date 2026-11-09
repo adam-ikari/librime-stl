@@ -9,18 +9,45 @@
 | 文件 | 说明 |
 |------|------|
 | `luna_pinyin.dict.yaml` | 词库本体。67051 条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、删污染简拼的死读音、补现代规范读音）。同词多读音保留为多行。 |
-| `essay.txt` | 词频表，437873 条带权重词条（2026-10 升级到 rime-essay 官方最新版 442688 条，再全部转简体去重）。词库开了 `use_preset_vocabulary`，靠它加载词频 —— 缺了它候选会退化成按 Unicode 排序的单字（生僻字排在常用字前面），词组也出不来。 |
+| `thuocl.dict.yaml` | 长尾补充表，74938 条 (词, 拼音, 语料词频)，[THUNLP/THUOCL](https://github.com/thunlp/THUOCL)（MIT）4 字以上子集，由 `luna_pinyin.dict.yaml` 的 `import_tables` 导入。拼音由 pypinyin 生成、版本钉在 `tools/sources.lock`。为什么不整表导入、为什么 4 字起：见下面「thuocl 是 4 字起的长尾补充」。 |
 | `opencc/` | 简繁与字形转换数据，供 schema 的 simplifier 用：`t2s_full.json`（简体输出主路径）、`t2hk.json` / `t2tw.json`（港/臺字形）。 |
 | `opencc/emoji.json`、`opencc/emoji_word.txt`、`opencc/emoji_category.txt` | 绘文字扩展词典（7218 + 212 行），rime-emoji 的逐字副本。默认关，`Ctrl+Shift+6` 开 —— 见下面「emoji 是一份可开关的滤镜词典，不是词库词条」。 |
 
-三个文件是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`，
-简体方案再挂 opencc 转换。改其中任何一个都要另两个配套。
+四份数据是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`、
+按 `import_tables` 导入 `thuocl.dict.yaml`，简体方案再挂 opencc 转换。改其中任何一个
+都要其余配套。
 
 **主词库只放「组不出」的条目**。67051 条里 45306 条是单字、其余是成语与固定
 搭配；像「中国」「人工智能」这种能按单字读音组合出来的词**故意不在主词库里**
 ——引擎的 `ScriptEncoder` 会动态组词，词频由 essay 提供（43.7 万条里 91%
 不在主词库）。所以「某词不在 luna_pinyin.dict.yaml 里」并不等于打不出来，
 判断词库缺词要先用引擎实测（`make -C tools smoke` 的做法），别看文件下结论。
+
+## thuocl 是 4 字起的长尾补充
+
+主词库与 essay 覆盖的是常用词与能按单字组出的词；专名、行业术语和长复合词
+（`feigongjingji` 非公经济、`xiaoweihanyang` 小尾寒羊、`wenqunadeqingruxu`
+问渠哪得清如许）此前只能靠引擎拼出「绯红经济」「学位汗颜」这类谐音猜测。
+THUOCL 补的正是这一段。
+
+**只取 4 字以上，不是随手加的阈值。** THUOCL 是语料切词产物，2–3 字里混着
+人名、机构与行政碎片（一公司、内都、源通、向县）。整表导入时它们的语料词频
+（万级到百万级）压过 essay 里同键常用词的权重，实测把 `guohou` 的 过后 换成
+果后、`yuantong` 的 圆通 换成 源通、`neidou` 的内斗 换成 内都。取 4 字后这些
+回退全部消失，而上面三个收益保持不变（`smoke` 的 `THUOCL_PROBES` 两侧都钉住）。
+
+**去重是按词**：luna 主词库或 essay 已有的词不再重复导入 —— 它们本来就能打出
+（essay 经 `use_preset_vocabulary` 参与候选），重复只会改权重。95613 个 4 字以上
+THUOCL 词里 20675 个已知，余下 74938 个成为产物；语料词频 0 的行（12.8k 条）
+保留、权重落到 1，不因为 `0 > 默认值` 比较而被静默丢掉。
+
+**代价**（同一 schema、干净用户目录实测）：`table.bin` 22.0 → 25.7 MB，首启部署
+6.1 → 7.0 s，部署峰值 RSS 438 → 482 MB；常见词候选顺序不变。
+
+**拼音是生成的，不是抄的**：THUOCL 只有词和词频。`build_thuocl.py` 用 pypinyin
+注音，版本钉在 `sources.lock` 并要求脚本断言——pypinyin 的短语词典决定多音字
+选读，换版本就可能换字节。读起来像「引入一个依赖换取数据」，但它只在生成期
+存在，引擎与买家都不装。
 
 ## opencc/ 必须是自足的
 
@@ -134,6 +161,7 @@ soname 同为 `libopencc.so.1.1`，运行时看不出差别。configure 因此�
 交叉、CI 的 `hermetic-deps`）把版本不一致变成硬错误。见根 `README.md`。
 
 ```sh
+make -C tools thuocl           # 重新生成 thuocl.dict.yaml（THUOCL 长尾补充）
 make -C tools check            # 重新生成，并与本目录已提交内容逐字节比对
 make -C tools smoke            # 部署真实引擎，断言词库可用（需先构建引擎）
 make -C tools audit            # 单字死读音审计（只读）：污染首字母简拼的读音
@@ -144,10 +172,11 @@ make -C tools package          # 打成 term-ime-dict-<VERSION>.tar.gz
 
 三个 `audit*` 是校准用的读数工具，需要开发期 oracle（`pip install pypinyin`）；
 它们不改数据，人工核对后的结论落成 `pinyin_fixes.txt` 的 `del`/`add` 行
-（`EMIT=1` 出可直接粘贴的指令行，仍须逐条查字典）。check/smoke 都不依赖 oracle。
+（`EMIT=1` 出可直接粘贴的指令行，仍须逐条查字典）。`check` 现在也依赖 pypinyin
+（`build_thuocl.py` 注音，版本见 `sources.lock`）；`smoke` 不依赖。
 `MIN_WEIGHT`/`TOP_WORDS`/`LIMIT`/`MIN_FREQ` 用来调读数阈值。
 
-五条契约，写进 `tools/` 的脚本里，改脚本前先读：
+六条契约，写进 `tools/` 的脚本里，改脚本前先读：
 
 - **essay.txt 不裁剪**。437873 条全留：`luna_pinyin` 开了 `use_preset_vocabulary`，
   词频与大部分词组只在这份表里（91.2% 不在主词库），删条目等于删候选。
@@ -168,16 +197,22 @@ make -C tools package          # 打成 term-ime-dict-<VERSION>.tar.gz
   带偏，见 `audit`）。补的门槛：宽表有这一读、本仓该字/该词现有各行里没有、
   essay 里真有用到（词组行看词频、单字行看被卡词的词频之和）。两条都不许只凭
   「字典里查得到这字能这么读」下手；pypinyin 按上下文猜出来的读音（精雕细琢它
-  给 zuo、区域网路它给 luo）一律不作证据。
+  给 zuo、区域网路它给 luo）一律不作证据 —— 这一条管的是往 luna 底本里补读音；
+  THUOCL 表的注音是另一件事：那批词在本仓没有任何既有读音可比，只能生成。
+- **THUOCL 只取 4 字以上、只补已知词表之外**（`tools/build_thuocl.py`）。2–3 字
+  的语料碎片会压过 essay 的同键常用词；已知词重复导入只会改权重。两条都由
+  `smoke` 的 `THUOCL_PROBES` 钉住，改阈值就把门踢红。注音用钉死版本的 pypinyin，
+  生成器在版本不符时拒绝产出。
 
-五条契约管「怎么生成」，另有一道门管「生成的东西引擎读不读得动」：
+六条契约管「怎么生成」，另有一道门管「生成的东西引擎读不读得动」：
 `make -C tools smoke` 把本目录按安装布局（引擎数据取 `data/minimal/`，词库与
-essay 取本目录覆盖同名 minimal 文件，`opencc/` 取本目录装进
+essay、thuocl 取本目录覆盖同名 minimal 文件，`opencc/` 取本目录装进
 `<部署目录>/opencc/`）装进临时部署，用 `rime_console` 真编译
-一遍，断言四类事 —— 部署日志零错误行（模式编译失败、词条被表构建器拒绝这类
+一遍，断言五类事 —— 部署日志零错误行（模式编译失败、词条被表构建器拒绝这类
 问题只在真部署里现形，逐字节比对看不见）；几条探针能提交出预期文字（含一个
 多音字的两个读音）；简拼首页候选既不出现只靠死读音才拼得出的词，也必须出现
 现代读音应有的词（`ABBREV_PROBES` 守删除那一半，`ADD_PROBES` 守补读这一半）；
+THUOCL 导入既补上长尾词、又不让 2–3 字碎片压过常用词（`THUOCL_PROBES`）；
 emoji 滤镜关时无痕、开时出字（`EMOJI_PROBES`）。
 check 证明「与已提交内容一致」，smoke 证明「引擎用得动」，两道门缺一不可。
 
@@ -191,7 +226,7 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 `translator/dictionary` 只支持单个词典，挂扩展词典需经 `translator/packs`
 或独立 schema。
 
-`tools/sources.lock` 钉住四个输入坐标。`luna_pinyin` 的底本不是上游某个 release，
+`tools/sources.lock` 钉住五个输入坐标（外加注音生成器的 pypinyin 版本）。`luna_pinyin` 的底本不是上游某个 release，
 而是本仓 `64eda4c7` 里那份繁体快照（上游此后加了读音权重、补了日文国字与注音
 索引，本仓又剪过 115 行），所以取底本要读 git 历史，浅克隆取不到。
 
@@ -210,6 +245,7 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 | `dict-2026.10.10` | `v1.1.8-rime-stack` | 纯数据修订：`luna_pinyin.dict.yaml` 错音订正与单字补读音（`tools/pinyin_fixes.txt`），无新引擎依赖 |
 | `dict-2026.10.11` | `v1.1.8-rime-stack` | 纯数据修订：清理底本为超高频虚词保留的文言读音行（36 条 `del`），无新引擎依赖 |
 | `dict-2026.10.13` | `v1.1.8-rime-stack` | 新增 emoji 扩展词典（`opencc/emoji*` + `data/minimal/emoji_suggestion.yaml` 接线，默认关）。simplifier 的 option 门控与 `__patch` 都是 librime 既有能力，无新引擎依赖 |
+| `dict-2026.11.09` | `v1.1.8-rime-stack` | 新增 `thuocl.dict.yaml` 长尾补充（`luna_pinyin.dict.yaml` 的 `import_tables`）。`import_tables` 与 `use_preset_vocabulary` 都是旧引擎已有能力，无新引擎依赖；但**取这份词库的人必须同时拿到 `thuocl.dict.yaml`**，否则导入缺文件 |
 
 （`v1.1.9-rime-stack` 之后的引擎变更——上游 67 提交合并、PCRE 翻译层——属引擎侧，
 不改变词库的最低 stack 要求。）

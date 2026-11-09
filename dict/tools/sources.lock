@@ -23,3 +23,13 @@ luna-pinyin-base = 64eda4c72b79d3f92a8a03b6c892a1c302fb6c52
 # 那份只有 4668 行、覆盖更小，所以钉的是这个分支的提交，不是默认分支。这三个文件原样
 # vendor —— rebuild_ocd2.sh 只拷不生成，改这里等于改 emoji 的覆盖范围，必须跑 make check。
 emoji-base = 771d613b6ad7bc480b56fa14a6bbdd36217b092d
+
+# thuocl: 长尾词表（THUNLP/THUOCL，MIT）。它的 data/*.txt 已逐字 vendor 在
+# tools/thuocl-src/（11 个文件 2.7M，含上游 LICENSE），这里钉的是那个副本对应的
+# 上游提交；生成脚本只读本地副本，不从网络取，浅克隆也能复现。
+# THUOCL 只有 词/语料词频、没有拼音，拼音由 build_thuocl.py 用 pypinyin 生成。
+thuocl = a30ce79d895d01ab5132a5c74c29703ff7efb4cc
+
+# 注音生成器的版本。pypinyin 的短语词典决定多音字选读，版本一变产物就可能变字节；
+# build_thuocl.py 会断言实际版本等于这里，不等即报错而不是静默产出别的词库。
+thuocl-pypinyin = 0.55.0

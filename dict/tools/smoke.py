@@ -60,6 +60,9 @@ ENGINE_DATA = [
 DICT_DATA = [
     "essay.txt",
     "luna_pinyin.dict.yaml",
+    # imported by luna_pinyin.dict.yaml (import_tables); without it the
+    # deployment logs an import error and the long-tail probes below fail.
+    "thuocl.dict.yaml",
 ]
 
 # glog prints errors as `E1011 10:00:00.000000 1234 file.cc:42] message`
@@ -112,6 +115,23 @@ ADD_PROBES = [
     ("huangbiaoma", "黄骠马"),
     ("bengda", "蹦跶"),
     ("jianwei", "犍为"),
+]
+
+# The THUOCL import (dict/thuocl.dict.yaml, see tools/build_thuocl.py). Two
+# halves, both load-bearing:
+#   * words the luna base and essay cannot compose must commit from the import
+#     (before it, `feigongjingji` offered 绯红经济 and `wenqunadeqingruxu`
+#     offered 免去拿的侵入于);
+#   * the 4-character floor must hold -- 2-3 character corpus fragments would
+#     outrank real words at the same keys (unfiltered: 果后 over 过后, 内都
+#     over 内斗). These two probe the filter itself, so lowering MIN_LENGTH
+#     turns the gate red.
+THUOCL_PROBES = [
+    ("feigongjingji", "非公经济"),
+    ("xiaoweihanyang", "小尾寒羊"),
+    ("wenqunadeqingruxu", "问渠哪得清如许"),
+    ("guohou", "过后"),
+    ("neidou", "内斗"),
 ]
 
 # Emoji are a runtime filter over the candidates -- data/minimal/
@@ -248,6 +268,13 @@ def main():
                 print(f"OK   {keys} -> {word}")
             else:
                 failures += fail(f"{keys} -> {page}, {word} not on page one")
+        for keys, expected in THUOCL_PROBES:
+            got = probe(console, root, keys)
+            if got == expected:
+                print(f"OK   {keys} -> {got}  (THUOCL)")
+            else:
+                failures += fail(
+                    f"{keys} -> {got!r}, expected {expected!r} from the THUOCL import")
         for keys, emoji in EMOJI_PROBES:
             off = probe_candidates(console, root, keys)
             shown = [c for c in off if EMOJI_CHAR.search(c)]
