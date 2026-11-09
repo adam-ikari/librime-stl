@@ -252,3 +252,5 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 
 改词库：在这里改，`make -C tools check` 过，随引擎一起发 stack tag；只动数据就发
 `dict-*`。term-ime 更新 submodule 指针。
+
+<!-- ci: 触发 dict-check（THUOCL 复现门 + pypinyin 安装） -->
