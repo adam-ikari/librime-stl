@@ -5,7 +5,7 @@ category: decision
 status: active
 tags: [dict, gates]
 created: "2026-10-13T05:37:49"
-updated: "2026-10-14T07:09:36"
+updated: "2026-11-09T22:52:58"
 ---
 
 <!-- compiled_truth -->
@@ -85,3 +85,9 @@ updated: "2026-10-14T07:09:36"
   kind: evidence
   summary: "check/smoke 之外新增第三道来源门：configure 打印每个依赖的解析路径与 opencc 的 resolved/pin，声明 -DRIME_DEPS_PREFIX 的构建（Android 交叉、CI hermetic-deps）把「opencc 不是 pin」变成硬错误。见 [[hermetic-build-graphs]]。"
   affects: [dict-reproducibility-gates]
+
+- time: 2026-11-09T22:52:58
+  kind: decision
+  summary: "新增第四个产物 thuocl.dict.yaml（THUOCL 4 字以上子集，74938 条，MIT）：convert_dict.py 在 luna 表头写 import_tables: [thuocl]，build_thuocl.py 用 pypinyin（0.55.0，钉 sources.lock 并断言版本）注音。check 多比对一份产物；smoke 部署多装该文件并新增 THUOCL_PROBES（长尾词必须出、2–3 字碎片不得压过常用词），清空产物可证伪。CI 的 dict-check/dict-release 多一步按 lock 版本装 pypinyin。"
+  source: "2026-11-09 THUOCL 集成"
+  affects: [dict-reproducibility-gates, vendored-upstream-pins]
