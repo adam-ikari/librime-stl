@@ -26,10 +26,12 @@ License
 > **Fork.** Licensing here is not uniform. The engine is upstream's, and the upstream
 > `LICENSE` is kept verbatim -- the patches are an upstream-compatible derivative,
 > not a relicense. Data under `dict/` is a separate matter and follows its own
-> sources: LGPL-3.0 for `essay.txt` and `luna_pinyin.dict.yaml`, Apache-2.0 for the
-> OpenCC-derived tables, MIT for this project's own tables. Full texts are vendored
-> under [`licenses/`](licenses/); see [dict/LICENSE](dict/LICENSE) for the
-> distribution obligations when bundling the data.
+> sources: LGPL-3.0 for the original `essay.txt` / `luna_pinyin.dict.yaml` data,
+> GPL-3.0 for the rime-ice-derived readings and frequencies merged into those two
+> files and for `dict/en/`, Apache-2.0 for the OpenCC-derived tables, MIT for this
+> project's own tables.
+> Full texts are vendored under [`licenses/`](licenses/); see [dict/LICENSE](dict/LICENSE)
+> for the distribution obligations when bundling the data.
 
 Features
 ===

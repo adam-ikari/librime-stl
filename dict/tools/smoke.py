@@ -94,7 +94,11 @@ ABBREV_PROBES = [
     ("fff", ["凤飞飞"], ["不仅仅", "服不服", "不复发"]),
     ("bjj", ["不仅仅"], []),           # the standard bù jǐn jǐn must still be there
     ("rr", ["让人"], ["女人", "女儿"]),   # with 女 rǔ deleted, r-r cannot spell it
-    ("sbsb", ["是不是"], ["身份识别"]),    # with 份 bīn deleted, s-b-s-b cannot spell it
+    ("sbs", ["是不是"], []),               # 是不是 is three syllables: shi-bu-shi
+    # The dead reading 份 bīn used to make s-b-s-b spell 身份识别. With the
+    # enlarged dictionary s-b-s-b is crowded by unrelated four-syllable words,
+    # so keep the dead-reading guard separate from the positive spelling probe.
+    ("sbsb", [], ["身份识别"]),
 ]
 
 # The opposite gap: readings the traditional base never carried, so the modern
@@ -114,22 +118,23 @@ ADD_PROBES = [
     ("gongxuan", "拱券"),
     ("huangbiaoma", "黄骠马"),
     ("bengda", "蹦跶"),
-    ("jianwei", "犍为"),
+    ("qianwei", "犍为"),   # pinyin_fixes.txt adds 犍 qian; 犍为 stays on page one
 ]
 
 # The THUOCL import (dict/thuocl.dict.yaml, see tools/build_thuocl.py). Two
 # halves, both load-bearing:
-#   * words the luna base and essay cannot compose must commit from the import
-#     (before it, `feigongjingji` offered 绯红经济 and `wenqunadeqingruxu`
-#     offered 免去拿的侵入于);
+#   * words absent from the merged luna base and essay must commit from the
+#     import only (build_thuocl.py filters out everything already known, so
+#     after the rime-ice merge the old 非公经济 / 小尾寒羊 probes moved into
+#     the main dictionary and no longer exercise the import);
 #   * the 4-character floor must hold -- 2-3 character corpus fragments would
 #     outrank real words at the same keys (unfiltered: 果后 over 过后, 内都
 #     over 内斗). These two probe the filter itself, so lowering MIN_LENGTH
 #     turns the gate red.
 THUOCL_PROBES = [
-    ("feigongjingji", "非公经济"),
-    ("xiaoweihanyang", "小尾寒羊"),
-    ("wenqunadeqingruxu", "问渠哪得清如许"),
+    ("jianbingguozi", "煎饼果子"),
+    ("songshuguiyu", "松鼠桂鱼"),
+    ("bandianchaweihui", "斑点叉尾鮰"),
     ("guohou", "过后"),
     ("neidou", "内斗"),
 ]

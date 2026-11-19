@@ -23,6 +23,12 @@ Contract:
     re-encoding must not do either.
   * keep protected characters (乾, 薹) as they are.
   * collapse entries that collide after conversion, keeping the highest weight.
+  * merge the pinned rime-ice snapshot's word frequencies: a word already in
+    rime-essay keeps this repo's weight (its ranking is already calibrated);
+    a word only in rime-ice is added with its highest rime-ice weight scaled
+    into (0, 1), so additions rank among themselves but never outrank an
+    existing word whose weight is at least 1. Its weight-only tencent table is
+    part of this merge; its reading tables are not.
   * order by codepoint, which is byte order under UTF-8.
 """
 
@@ -30,6 +36,7 @@ import argparse
 import pathlib
 import subprocess
 import sys
+import tarfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import t2s
@@ -49,6 +56,41 @@ def base_from_git():
             f"  git fetch --depth=1 origin {sha} && git cat-file -e {sha}^{{commit}}")
     return proc.stdout
 
+
+RIME_ICE_TABLES = ("8105", "base", "ext", "others", "tencent")
+
+def rime_ice_weights():
+    """Read the pinned rime-ice snapshot and return {word: highest weight}.
+
+    Only rows with a numeric weight are useful here: the reading tables carry
+    (word, syllables, weight), tencent carries (word, weight), and 41448 has no
+    weight at all. The snapshot is vendored as a tarball so regeneration stays
+    offline, the same contract as the git-history bases above.
+    """
+    sha = t2s.pin("rime-ice-base")
+    archive = pathlib.Path(__file__).resolve().parent / "upstream" / f"rime-ice-{sha}.tar.gz"
+    if not archive.exists():
+        sys.exit(f"missing vendored rime-ice snapshot: {archive}")
+    rows = []
+    with tarfile.open(archive, "r:gz") as tf:
+        for name in RIME_ICE_TABLES:
+            member = tf.getmember(f"cn_dicts/{name}.dict.yaml")
+            lines = tf.extractfile(member).read().decode("utf-8").splitlines()
+            for line in lines[lines.index("...") + 1:]:
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue
+                fields = line.split("\t")
+                if len(fields) == 3 and fields[2].isdigit():
+                    rows.append((fields[0], int(fields[2])))
+                elif len(fields) == 2 and fields[1].isdigit():
+                    rows.append((fields[0], int(fields[1])))
+    converted = t2s.simplify("\n".join(w for w, _ in rows)).splitlines()
+    best = {}
+    for (_, weight), word in zip(rows, converted):
+        if word not in best or weight > best[word]:
+            best[word] = weight
+    print(f"  rime-ice: {len(best)} weighted words from {len(RIME_ICE_TABLES)} tables")
+    return best
 
 def main():
     ap = argparse.ArgumentParser()
@@ -70,6 +112,12 @@ def main():
             sys.exit(f"unexpected essay line: {line!r}")
         if word not in best or int(weight) > int(best[word]):
             best[word] = weight
+
+    rime = rime_ice_weights()
+    ceiling = max(rime.values(), default=0) + 1
+    for word, weight in rime.items():
+        if word not in best:
+            best[word] = f"{weight / ceiling:.9g}"
 
     out = pathlib.Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

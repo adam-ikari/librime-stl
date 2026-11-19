@@ -6,6 +6,8 @@ dict/ 目录下的文件授权不同，**不是单一授权的整体**，各自�
 | `essay.txt` | [rime/rime-essay](https://github.com/rime/rime-essay) | **LGPL-3.0** |
 | `thuocl.dict.yaml` | 词表来自 [THUNLP/THUOCL](https://github.com/thunlp/THUOCL) `a30ce79d`（`tools/sources.lock` 的 `thuocl`）的 4 字以上子集；拼音列是本仓用 pypinyin（BSD）生成的新增内容 | **MIT**（词表 MIT，注音为本仓原创，同为 MIT） |
 | `tools/thuocl-src/data/*.txt`、`tools/thuocl-src/LICENSE` | THUNLP/THUOCL 数据文件与许可证的逐字副本（`make check` 不生成它们，只读取） | **MIT** |
+| `luna_pinyin.dict.yaml`、`essay.txt` 中的 rime-ice 派生条目 | [iDvel/rime-ice](https://github.com/iDvel/rime-ice) `927e1cf1d3eeb9bf4be85e3f684dba4dd485b6f6`（`tools/sources.lock` 的 `rime-ice-base`；随仓只读 vendored `tools/upstream/rime-ice-<SHA>.tar.gz`）：`cn_dicts/` 的 `8105`/`41448`/`base`/`ext`/`others` 读音表与各表（含 `tencent`）的词频列；上游 `cn_dicts/` 是多来源汇编（文件头列华宇野风、清华 THUOCL、腾讯词向量、Unihan/汉典等），整体授权 GPL-3.0，本仓不替上游重授权 | **GPL-3.0** |
+| `en/en.dict.yaml`、`en/en_ext.dict.yaml` | [iDvel/rime-ice](https://github.com/iDvel/rime-ice) 同一 pin 的 `en_dicts/`，逐字 vendor（上游注明取自 google-10000-english 与 rime-melt 英文词表） | **GPL-3.0**（跟随 rime-ice 整体授权） |
 | `opencc/t2s.json`、`opencc/t2hk.json`、`opencc/t2tw.json`、`opencc/*.ocd2` | [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC)：`.json` 是上游配置文件的逐字副本，`.ocd2` 是上游 `opencc_dict` 由上游词典生成的产物 | **Apache-2.0** |
 | `opencc/emoji.json`、`opencc/emoji_word.txt`、`opencc/emoji_category.txt` | [rime/rime-emoji](https://github.com/rime/rime-emoji) 的 `Emoji-14.0` 分支 `771d613b`（`tools/sources.lock` 的 `emoji-base`）：三个文件都是逐字副本，本仓不派生、不改写 | **LGPL-3.0** |
 | `opencc/t2s_full.json`、`opencc/variants.txt`、`opencc/variants_ext.txt`、`opencc/variants_jp.txt` | 本项目原创转换表 | **MIT** |
@@ -15,8 +17,19 @@ dict/ 目录下的文件授权不同，**不是单一授权的整体**，各自�
 
 派生判定：`luna_pinyin.dict.yaml` 与 `essay.txt` 都不是原创 —— 前者底本来自上游
 rime-luna-pinyin（`dict/tools/sources.lock` 亦记其繁体底本取自本仓 `64eda4c7`），
-后者来自 rime-essay。本项目对其做的是生成性修改（升级上游最新版、全部转简体、按
-(词,拼音) 对去重）。**派生作品的许可证跟随上游，不能单方面改挂 MIT。**
+后者来自 rime-essay；2026-11 起两者还各自并入 rime-ice 的读音/词频。本项目对其做的
+是生成性修改（升级上游最新版、并入只读快照、全部转简体、按 (词,拼音) 对去重）。
+**派生作品的许可证跟随上游，不能单方面改挂 MIT。**
+
+rime-ice 的 `cn_dicts/` 是**多来源汇编、整体 GPL-3.0**（上游文件头列出的华宇野风、
+清华 THUOCL、腾讯词向量、Unihan/汉典等只是素材出处，本仓不替上游重新授权）。本仓
+`convert_dict.py` 把带读音列的表（`8105`/`41448`/`base`/`ext`/`others`）并入
+`luna_pinyin.dict.yaml`，`upgrade_essay.py` 把词频（`tencent` 等表，每个词取最高权重）
+并入 `essay.txt`；本地已有的读音与权重优先。**rime-ice 派生部分保持 GPL-3.0，
+合并产物按 GPL-3.0 分发，不单方面改挂 MIT/LGPL**；原有 LGPL-3.0 来源的声明仍保留。
+GPL-3.0 全文见 [`../licenses/GPL-3.0.txt`](../licenses/GPL-3.0.txt)，与 vendored
+tarball 里的 `LICENSE` 逐字一致。
+
 `opencc/emoji*` 则是 rime-emoji 的逐字副本，本仓未作任何修改，也不参与
 `make check` 的生成过程（`rebuild_ocd2.sh` 只拷贝）。
 `thuocl.dict.yaml` 不是上游派生：上游只有词与语料词频（MIT），拼音列由本项目生成，
@@ -30,11 +43,12 @@ rime-luna-pinyin（`dict/tools/sources.lock` 亦记其繁体底本取自本仓 `
 - rime/rime-essay — https://github.com/rime/rime-essay/blob/master/LICENSE
 - rime/rime-emoji — https://github.com/rime/rime-emoji/blob/master/LICENSE
 - THUNLP/THUOCL — https://github.com/thunlp/THUOCL/blob/master/LICENSE
+- iDvel/rime-ice — https://github.com/iDvel/rime-ice/blob/927e1cf1d3eeb9bf4be85e3f684dba4dd485b6f6/LICENSE
 - BYVoid/OpenCC — https://github.com/BYVoid/OpenCC/blob/master/LICENSE
 
-## LGPL-3.0（luna_pinyin.dict.yaml, essay.txt, opencc/emoji*）
+## LGPL-3.0（rime-luna-pinyin / rime-essay / rime-emoji 来源部分）
 
-这些数据文件是 LGPL-3.0 作品，按其 §2（Conveying Modified Versions）分发时你必须：
+这些来源是 LGPL-3.0 作品，按其 §2（Conveying Modified Versions）分发时你必须：
 
 - 保留 LGPL-3.0 授权，不得改挂其他许可证；
 - 提供对应源码（本仓即数据的"源码"，随仓分发即满足）；
@@ -43,7 +57,20 @@ rime-luna-pinyin（`dict/tools/sources.lock` 亦记其繁体底本取自本仓 `
 完整条款见 rime-essay / rime-luna-pinyin / rime-emoji 的 LICENSE。
 
 **不传染**：LGPL 的 "L"（Lesser）意为不要求调用方开源。本项目引擎等自有代码以
-MIT 分发不受影响，与同一仓库并存不冲突 —— 只有上述数据文件本身留在 LGPL-3.0。
+MIT 分发不受影响，与同一仓库并存不冲突 —— 只有上述 LGPL 来源部分留在 LGPL-3.0。
+
+## GPL-3.0（rime-ice 派生部分）
+
+`luna_pinyin.dict.yaml` 与 `essay.txt` 中来自 rime-ice `cn_dicts/` 的读音与词频是
+GPL-3.0 作品。按其条款分发合并后的数据文件时须：
+
+- 保持这部分为 GPL-3.0，并随包附 GPL-3.0 全文
+  （[`../licenses/GPL-3.0.txt`](../licenses/GPL-3.0.txt)）；
+- 保留上游版权/授权声明；本仓的数据文件就是其来源形态，随仓分发即满足对应源码义务；
+- 显著声明数据含 iDvel/rime-ice 的 GPL-3.0 派生内容；若再修改数据，改后的数据须一并给出。
+
+完整条款见 vendored tarball 的 `LICENSE` / `../licenses/GPL-3.0.txt`。本仓自有引擎
+代码与原创转换表不因此变成 GPL-3.0。
 
 ## Apache-2.0（opencc/ 的 json 与 ocd2）
 
@@ -73,14 +100,19 @@ THUNLP/THUOCL 的 MIT 数据（原文见 [`tools/thuocl-src/LICENSE`](tools/thuo
 
 ## 打包进其他程序分发（bundling）
 
-本 `dict/` 数据可以打包进另一个程序随其分发，被包程序**不必**改为 LGPL/Apache，
+本 `dict/` 数据可以打包进另一个程序随其分发，被包程序**不必**改为 LGPL/GPL/Apache，
 但须尽下列义务：
 
-- **`essay.txt` / `luna_pinyin.dict.yaml` / `opencc/emoji*`（LGPL-3.0）**：数据自身保持
-  LGPL-3.0；随包附 **LGPL-3.0 与 GPL-3.0 全文**（见
+- **`essay.txt` / `luna_pinyin.dict.yaml` / `opencc/emoji*` 中的 LGPL-3.0 部分**：
+  数据自身保持 LGPL-3.0；随包附 **LGPL-3.0 与 GPL-3.0 全文**（见
   [`../licenses/`](../licenses/)）；
   显著声明「本产品含 LGPL-3.0 数据（rime-essay / rime-luna-pinyin / rime-emoji）」；若你改过
   数据，须一并提供改后的数据（数据文件本身即其来源形态）。见 LGPL-3.0 §2、§4。
+  前两个合并文件另含 GPL-3.0 部分，还须尽下一条义务。
+- **`luna_pinyin.dict.yaml` / `essay.txt` 中的 rime-ice 派生部分（GPL-3.0）**：随包附
+  **GPL-3.0 全文**（[`../licenses/GPL-3.0.txt`](../licenses/GPL-3.0.txt)）；显著声明
+  「本产品含 GPL-3.0 数据（iDvel/rime-ice）」；合并产物按 GPL-3.0 分发，不单方改挂
+  LGPL/MIT；若再修改数据，改后的数据须一并提供。
 - **`opencc/` 的 json/ocd2（Apache-2.0）**：保留 Apache-2.0 许可证与版权/NOTICE；
   改过的文件须标注改动。`opencc/emoji.json` 不在这一项里 —— 它跟它的两张表同源，
   属上一条的 LGPL-3.0。

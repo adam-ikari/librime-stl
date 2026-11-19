@@ -19,6 +19,10 @@ Contract:
   * deduplicate by (word, syllables), keeping the first reading line -- one word
     with several readings stays several lines, because typing either reading has
     to reach the word.
+  * merge the pinned rime-ice snapshot on top of the local base. Only its
+    cn_dicts tables with a reading column are merged here; tencent.dict.yaml is
+    weight-only and belongs in essay.txt. Local readings win a collision, the
+    wider rime-ice vocabulary fills the rest.
   * apply pinyin_fixes.txt on top of the converted base: the base is an
     upstream traditional snapshot, and a handful of its syllable strings are
     simply wrong for simplified Chinese (蚌埠市 bang fu shi). They cannot be
@@ -35,6 +39,7 @@ import argparse
 import pathlib
 import subprocess
 import sys
+import tarfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import t2s
@@ -54,6 +59,43 @@ def base_from_git():
             f"  git fetch --depth=1 origin {sha} && git cat-file -e {sha}^{{commit}}")
     return proc.stdout
 
+
+RIME_ICE_TABLES = ("8105", "41448", "base", "ext", "others")
+
+def rime_ice_pairs():
+    """Read (word, syllables) pairs from the pinned, vendored rime-ice snapshot.
+
+    The snapshot is a tarball in tools/upstream rather than a live GitHub fetch:
+    `make check` has to reproduce byte-for-byte offline. Table order follows
+    rime-ice's own import list, with the local base taking precedence on any
+    pair already present there.
+    """
+    sha = t2s.pin("rime-ice-base")
+    archive = pathlib.Path(__file__).resolve().parent / "upstream" / f"rime-ice-{sha}.tar.gz"
+    if not archive.exists():
+        sys.exit(f"missing vendored rime-ice snapshot: {archive}")
+    pairs, seen = [], set()
+    with tarfile.open(archive, "r:gz") as tf:
+        for name in RIME_ICE_TABLES:
+            member = tf.getmember(f"cn_dicts/{name}.dict.yaml")
+            lines = tf.extractfile(member).read().decode("utf-8").splitlines()
+            rows = []
+            for line in lines[lines.index("...") + 1:]:
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue
+                fields = line.split("\t")
+                if len(fields) >= 2:
+                    rows.append(f"{fields[0]}\t{fields[1]}")
+            for line in t2s.simplify("\n".join(rows)).splitlines():
+                fields = line.split("\t")
+                if len(fields) < 2:
+                    continue
+                pair = (fields[0], " ".join(fields[1].split()))
+                if pair not in seen:
+                    seen.add(pair)
+                    pairs.append(pair)
+    print(f"  rime-ice: {len(pairs)} pairs from {len(RIME_ICE_TABLES)} tables")
+    return pairs
 
 def load_fixes():
     """Read tools/pinyin_fixes.txt into (fix, del, add) directives.
@@ -153,6 +195,11 @@ def main():
             continue
         seen.add((word, syllables))
         kept.append((word, syllables))
+
+    for pair in rime_ice_pairs():
+        if pair not in seen:
+            seen.add(pair)
+            kept.append(pair)
 
     kept = apply_fixes(kept)
 

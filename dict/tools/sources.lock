@@ -33,3 +33,10 @@ thuocl = a30ce79d895d01ab5132a5c74c29703ff7efb4cc
 # 注音生成器的版本。pypinyin 的短语词典决定多音字选读，版本一变产物就可能变字节；
 # build_thuocl.py 会断言实际版本等于这里，不等即报错而不是静默产出别的词库。
 thuocl-pypinyin = 0.55.0
+
+# rime-ice: 雾凇拼音 cn_dicts/ 与 en_dicts/ 的输入快照（GPL-3.0，仓库整体授权见其 LICENSE）。
+# 上游仓库同时含 schema/双拼/opencc，词库生成只需要 cn_dicts/ 与 en_dicts/，因此把该提交的
+# cn_dicts + en_dicts + LICENSE + rime_ice.dict.yaml 打成 upstream/rime-ice-<SHA>.tar.gz 随仓
+# vendor：make check 必须离线可复现，不能每次生成都去 GitHub 取。换 SHA 等于换整份
+# 词库，必须同时换掉 tarball 文件名并跑 make check + make smoke。
+rime-ice-base = 927e1cf1d3eeb9bf4be85e3f684dba4dd485b6f6

@@ -7,6 +7,7 @@
 #   make essay            regenerate essay.txt
 #   make dict             regenerate luna_pinyin.dict.yaml
 #   make thuocl           regenerate thuocl.dict.yaml (THUOCL long-tail supplement)
+#   make en               vendor rime-ice's English dictionaries into en/
 #   make ocd2             regenerate the opencc binary phrase tables
 #   make all              the products above
 #   make test-opencc      regenerate the opencc fixture rime_test converts against
@@ -53,10 +54,12 @@ export OPENCC_CONFIG_DIR := $(OPENCC_SRC)/data/config
 PY ?= python3
 VERSION := $(shell cat $(DICT)/VERSION)
 NAME := term-ime-dict-$(VERSION)
+RIME_ICE_PIN := $(shell sed -n 's/^rime-ice-base = //p' sources.lock)
+RIME_ICE_SRC := upstream/rime-ice-$(RIME_ICE_PIN).tar.gz
 
-.PHONY: all audit audit-words audit-coverage check clean dict essay ocd2 package smoke test-opencc thuocl toolchain
+.PHONY: all audit audit-words audit-coverage check clean dict en essay ocd2 package smoke test-opencc thuocl toolchain
 
-all: $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/thuocl.dict.yaml $(OUT)/opencc
+all: $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/thuocl.dict.yaml $(OUT)/opencc $(OUT)/en
 
 # The generator toolchain is the one place a host Python and a host-executed
 # opencc_dict are allowed: it builds opencc WITH its data step.
@@ -74,17 +77,21 @@ $(OPENCC_DICT) $(OPENCC_CLI):
 essay: $(OUT)/essay.txt
 dict: $(OUT)/luna_pinyin.dict.yaml
 thuocl: $(OUT)/thuocl.dict.yaml
+en: $(OUT)/en
 ocd2: $(OUT)/opencc
 test-opencc: $(OUT)/test-opencc
 
-$(OUT)/essay.txt: upgrade_essay.py protected_chars.txt t2s_char.json sources.lock | $(OUT) toolchain
+$(OUT)/essay.txt: upgrade_essay.py protected_chars.txt t2s_char.json sources.lock $(RIME_ICE_SRC) | $(OUT) toolchain
 	$(PY) upgrade_essay.py --out $@
 
-$(OUT)/luna_pinyin.dict.yaml: convert_dict.py pinyin_fixes.txt protected_chars.txt t2s_char.json sources.lock | $(OUT) toolchain
+$(OUT)/luna_pinyin.dict.yaml: convert_dict.py pinyin_fixes.txt protected_chars.txt t2s_char.json sources.lock $(RIME_ICE_SRC) | $(OUT) toolchain
 	$(PY) convert_dict.py --out $@
 
 $(OUT)/thuocl.dict.yaml: build_thuocl.py sources.lock $(OUT)/luna_pinyin.dict.yaml $(OUT)/essay.txt | $(OUT)
 	$(PY) build_thuocl.py --luna $(OUT)/luna_pinyin.dict.yaml --essay $(OUT)/essay.txt --out $@
+
+$(OUT)/en: vendor_en_dicts.py sources.lock $(RIME_ICE_SRC) | $(OUT)
+	$(PY) vendor_en_dicts.py --out-dir $@
 
 $(OUT)/opencc: rebuild_ocd2.sh | $(OUT) toolchain
 	sh rebuild_ocd2.sh $@
@@ -97,7 +104,7 @@ $(OUT)/test-opencc: rebuild_test_opencc.sh | $(OUT) toolchain
 $(OUT):
 	mkdir -p $(OUT)
 
-# Byte-for-byte against what is committed. Five separate diffs so a failure
+# Byte-for-byte against what is committed. Six separate diffs so a failure
 # says which product drifted.
 check: all test-opencc
 	@fail=0; \
@@ -112,6 +119,11 @@ check: all test-opencc
 	  echo "OK   opencc/"; \
 	else \
 	  echo "DIFF opencc/ -- see $(BUILD)/opencc.diff"; fail=1; \
+	fi; \
+	if diff -ru $(DICT)/en $(OUT)/en > $(BUILD)/en.diff; then \
+	  echo "OK   en/"; \
+	else \
+	  echo "DIFF en/ -- see $(BUILD)/en.diff"; fail=1; \
 	fi; \
 	if diff -ru $(TEST)/opencc $(OUT)/test-opencc > $(BUILD)/test-opencc.diff; then \
 	  echo "OK   test/opencc/"; \
@@ -149,7 +161,7 @@ package: all
 	rm -rf $(PKG)
 	mkdir -p $(PKG)/share/term-ime/rime-data
 	cp $(OUT)/essay.txt $(OUT)/luna_pinyin.dict.yaml $(OUT)/thuocl.dict.yaml $(PKG)/share/term-ime/rime-data/
-	cp -r $(OUT)/opencc $(PKG)/share/term-ime/rime-data/
+	cp -r $(OUT)/opencc $(OUT)/en $(PKG)/share/term-ime/rime-data/
 	cp $(DICT)/LICENSE $(DICT)/VERSION $(PKG)/share/term-ime/rime-data/
 	# THUOCL's own MIT grant travels with its words: the tarball's LICENSE
 	# names the file, this copy is the upstream text itself.

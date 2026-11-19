@@ -8,41 +8,46 @@
 
 | 文件 | 说明 |
 |------|------|
-| `luna_pinyin.dict.yaml` | 词库本体。67051 条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、删污染简拼的死读音、补现代规范读音）。同词多读音保留为多行。 |
-| `thuocl.dict.yaml` | 长尾补充表，74938 条 (词, 拼音, 语料词频)，[THUNLP/THUOCL](https://github.com/thunlp/THUOCL)（MIT）4 字以上子集，由 `luna_pinyin.dict.yaml` 的 `import_tables` 导入。拼音由 pypinyin 生成、版本钉在 `tools/sources.lock`。为什么不整表导入、为什么 4 字起：见下面「thuocl 是 4 字起的长尾补充」。 |
+| `luna_pinyin.dict.yaml` | 词库本体。约 94 万条 (词, 拼音) 映射（2026-10 全部转简体并去重，原 70655 条繁体；再经 `tools/pinyin_fixes.txt` 订正错音、删污染简拼的死读音、补现代规范读音；2026-11 并入 rime-ice 快照的读音表，体积显著变大）。同词多读音保留为多行；最终数字以产物为准。 |
+| `essay.txt` | 词频表，约 196 万行带权重词条（2026-10 升级到 rime-essay 官方最新版 442688 条，再全部转简体去重；2026-11 并入 rime-ice 快照的词频，体积显著变大）。词库开了 `use_preset_vocabulary`，靠它加载词频 —— 缺了它候选会退化成按 Unicode 排序的单字（生僻字排在常用字前面），词组也出不来。最终数字以产物为准。 |
+| `thuocl.dict.yaml` | 长尾补充表，3239 条 (词, 拼音, 语料词频)，[THUNLP/THUOCL](https://github.com/thunlp/THUOCL)（MIT）4 字以上子集，由 `luna_pinyin.dict.yaml` 的 `import_tables` 导入。拼音由 pypinyin 生成、版本钉在 `tools/sources.lock`。并入 rime-ice 后 95613 个候选里 92374 个已被主词库/essay 覆盖，产物相应缩小。为什么不整表导入、为什么 4 字起：见下面「thuocl 是 4 字起的长尾补充」。 |
 | `opencc/` | 简繁与字形转换数据，供 schema 的 simplifier 用：`t2s_full.json`（简体输出主路径）、`t2hk.json` / `t2tw.json`（港/臺字形）。 |
 | `opencc/emoji.json`、`opencc/emoji_word.txt`、`opencc/emoji_category.txt` | 绘文字扩展词典（7218 + 212 行），rime-emoji 的逐字副本。默认关，`Ctrl+Shift+6` 开 —— 见下面「emoji 是一份可开关的滤镜词典，不是词库词条」。 |
+| `en/` | rime-ice 的英文词表：`en.dict.yaml`（约 20k 常见英文词）与 `en_ext.dict.yaml`（缩写/互联网词汇），逐字 vendor。不参与中文词库生成，供英文 schema 按需挂载。 |
 
 四份数据是一套：schema 按名字引用 `luna_pinyin` 词库，词库按名字加载 `essay.txt`、
 按 `import_tables` 导入 `thuocl.dict.yaml`，简体方案再挂 opencc 转换。改其中任何一个
 都要其余配套。
 
-**主词库只放「组不出」的条目**。67051 条里 45306 条是单字、其余是成语与固定
-搭配；像「中国」「人工智能」这种能按单字读音组合出来的词**故意不在主词库里**
-——引擎的 `ScriptEncoder` 会动态组词，词频由 essay 提供（43.7 万条里 91%
-不在主词库）。所以「某词不在 luna_pinyin.dict.yaml 里」并不等于打不出来，
-判断词库缺词要先用引擎实测（`make -C tools smoke` 的做法），别看文件下结论。
+**主词库原本只放「组不出」的条目，并入 rime-ice 后不再局限于此**。原 67051 条里
+45306 条是单字、其余是成语与固定搭配；像「中国」「人工智能」这种能按单字读音
+组合出来的词原本**故意不在主词库里**，2026-11 起因并入 rime-ice 读音表也可能有
+显式读音行（用来钉住读音）。引擎的 `ScriptEncoder` 仍会动态组词，词频由 essay
+提供，覆盖的词远多于主词库。所以「某词不在 luna_pinyin.dict.yaml 里」并不等于
+打不出来，判断词库缺词要先用引擎实测（`make -C tools smoke` 的做法），别看文件下结论。
 
 ## thuocl 是 4 字起的长尾补充
 
 主词库与 essay 覆盖的是常用词与能按单字组出的词；专名、行业术语和长复合词
-（`feigongjingji` 非公经济、`xiaoweihanyang` 小尾寒羊、`wenqunadeqingruxu`
-问渠哪得清如许）此前只能靠引擎拼出「绯红经济」「学位汗颜」这类谐音猜测。
+（`jianbingguozi` 煎饼果子、`songshuguiyu` 松鼠桂鱼、`bandianchaweihui`
+斑点叉尾鮰）没有导入时只能拼出「煎饼馃子」「松鼠鳜鱼」这类近似词。
 THUOCL 补的正是这一段。
 
 **只取 4 字以上，不是随手加的阈值。** THUOCL 是语料切词产物，2–3 字里混着
 人名、机构与行政碎片（一公司、内都、源通、向县）。整表导入时它们的语料词频
 （万级到百万级）压过 essay 里同键常用词的权重，实测把 `guohou` 的 过后 换成
 果后、`yuantong` 的 圆通 换成 源通、`neidou` 的内斗 换成 内都。取 4 字后这些
-回退全部消失，而上面三个收益保持不变（`smoke` 的 `THUOCL_PROBES` 两侧都钉住）。
+回退全部消失；`smoke` 的 `THUOCL_PROBES` 正侧钉住新长尾词、负侧钉住这组回退。
+旧示例（非公经济等）并入 rime-ice 后已进主词库，不再用来检验导入。
 
 **去重是按词**：luna 主词库或 essay 已有的词不再重复导入 —— 它们本来就能打出
 （essay 经 `use_preset_vocabulary` 参与候选），重复只会改权重。95613 个 4 字以上
-THUOCL 词里 20675 个已知，余下 74938 个成为产物；语料词频 0 的行（12.8k 条）
-保留、权重落到 1，不因为 `0 > 默认值` 比较而被静默丢掉。
+THUOCL 词里 92374 个已被合并后的主词库/essay 覆盖，余下 3239 个成为产物；
+语料词频 0 的行保留、权重落到 1，不因为 `0 > 默认值` 比较而被静默丢掉。
 
-**代价**（同一 schema、干净用户目录实测）：`table.bin` 22.0 → 25.7 MB，首启部署
-6.1 → 7.0 s，部署峰值 RSS 438 → 482 MB；常见词候选顺序不变。
+**代价**（并入 rime-ice 之前、同一 schema 干净用户目录实测）：THUOCL 导入使
+`table.bin` 22.0 → 25.7 MB，首启部署 6.1 → 7.0 s，部署峰值 RSS 438 → 482 MB；
+常见词候选顺序不变。合并后的绝对体积由 rime-ice 主导，这组数字只说明增量来源。
 
 **拼音是生成的，不是抄的**：THUOCL 只有词和词频。`build_thuocl.py` 用 pypinyin
 注音，版本钉在 `sources.lock` 并要求脚本断言——pypinyin 的短语词典决定多音字
@@ -78,13 +83,40 @@ simplifier 退化为幂等护栏。
 `LICENSE` 按文件分别标注授权，跟随各自上游：`luna_pinyin.dict.yaml` 派生自
 [rime/rime-luna-pinyin](https://github.com/rime/rime-luna-pinyin)，`essay.txt` 派生自
 [rime/rime-essay](https://github.com/rime/rime-essay)，`opencc/emoji*` 逐字取自
-[rime/rime-emoji](https://github.com/rime/rime-emoji)，三者均为 **LGPL-3.0**；
-`opencc/` 的 `t2s.json`/`t2hk.json`/`t2tw.json` 与 `*.ocd2` 来自
-[BYVoid/OpenCC](https://github.com/BYVoid/OpenCC)，为 **Apache-2.0**；而
-`opencc/t2s_full.json` 与 `variants*.txt` 是本项目原创转换表，**MIT**。本项目对这些
-数据只做生成性修改（转简体、去重、升级版本），派生作品的许可证跟随上游 —— 整个
-`dict/` 不是 MIT，也不是任何单一授权。完整条款与打包分发义务（可随其他程序分发，
-含 LGPL 的 notice/源码义务）见 [`LICENSE`](LICENSE) 与 [`../licenses/`](../licenses/)。
+[rime/rime-emoji](https://github.com/rime/rime-emoji)，三者均为 **LGPL-3.0**；2026-11
+起两者还各自并入 [iDvel/rime-ice](https://github.com/iDvel/rime-ice) 的读音/词频，
+rime-ice `cn_dicts/` 是**多来源汇编、整体 GPL-3.0**（上游文件头列华宇野风、清华
+THUOCL、腾讯词向量、Unihan/汉典等），并入的派生部分保持 **GPL-3.0**，合并产物按
+GPL-3.0 分发，不单方面改挂 LGPL/MIT；`opencc/` 的 `t2s.json`/`t2hk.json`/`t2tw.json`
+与 `*.ocd2` 来自 [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC)，为
+**Apache-2.0**；而 `opencc/t2s_full.json` 与 `variants*.txt` 是本项目原创转换表，
+**MIT**。本项目对这些数据只做生成性修改（转简体、去重、升级版本、并入只读快照），
+派生作品的许可证跟随上游 —— 整个 `dict/` 不是 MIT，也不是任何单一授权。完整条款与
+打包分发义务（可随其他程序分发，含 LGPL/GPL 的 notice/源码义务）见
+[`LICENSE`](LICENSE) 与 [`../licenses/`](../licenses/)。
+
+## rime-ice 只读快照与合并规则
+
+rime-ice 不是 submodule、也不是生成期联网取的上游：`tools/sources.lock` 的
+`rime-ice-base` 钉死提交 `927e1cf1d3eeb9bf4be85e3f684dba4dd485b6f6`，
+`tools/upstream/rime-ice-<SHA>.tar.gz` 是该
+提交 `cn_dicts/` + `en_dicts/` + `LICENSE` + `rime_ice.dict.yaml` 的随仓快照，**只读**。`make check`
+必须离线逐字节复现，不能每次生成都去 GitHub 取；换 SHA 等于换整份词库，必须同时换掉
+tarball 文件名并跑 `make check` + `make smoke`。
+
+合并规则（实现见 `convert_dict.py` / `upgrade_essay.py`）：
+
+- **读音表并入主词库**：带读音列的表（`8105`/`41448`/`base`/`ext`/`others`）经逐字
+  转简体、按 (词, 拼音) 去重后并入 `luna_pinyin.dict.yaml`。本地已有读音优先，rime-ice
+  补的是本地没有的 (词, 拼音) 对；不拿 rime-ice 覆盖本地校准过的读音。
+- **词频只进 essay**：`tencent` 是只带权重的表，不进主词库；`upgrade_essay.py` 从
+  rime-ice 各表（含 `tencent`）取每个词的最高权重并入 `essay.txt`。已在 rime-essay
+  里的词保留本仓权重（排序已校准）；rime-ice 独有的词按相对权重映射到 `(0, 1)`，
+  因此新增词之间仍有频率顺序，但不会压过任何本仓权重 ≥ 1 的词、扰乱已校准的首页。
+- **英文词表独立落库**：`en_dicts/` 不并入中文词库，由 `vendor_en_dicts.py` 逐字拷进
+  `dict/en/`，进入 check 与 package 闭包；消费方在自己的英文 schema 里按需挂载。
+- **体积显著变大**：合并后 `luna_pinyin.dict.yaml` 约 94 万条、`essay.txt` 约 196 万
+  行（数字以产物为准，不写死）。
 
 ## emoji 是一份可开关的滤镜词典，不是词库词条
 
@@ -178,8 +210,9 @@ make -C tools package          # 打成 term-ime-dict-<VERSION>.tar.gz
 
 六条契约，写进 `tools/` 的脚本里，改脚本前先读：
 
-- **essay.txt 不裁剪**。437873 条全留：`luna_pinyin` 开了 `use_preset_vocabulary`，
-  词频与大部分词组只在这份表里（91.2% 不在主词库），删条目等于删候选。
+- **essay.txt 不裁剪**。约 196 万行全留（含 rime-ice 并入的词频，数字以产物为准）：
+  `luna_pinyin` 开了 `use_preset_vocabulary`，词频与大部分词组只在这份表里，
+  删条目等于删候选。
 - **只做逐字转换**（`tools/t2s_char.json` 只挂 `TSCharacters.ocd2`）。词组表会把
   词本身换掉（家俱 → 家具），异体表会把生僻码位折叠到常用字（㐀 → 丘）；词库
   要的是一次字符级重编码，不是一次用词规范化。运行时那条 `t2s_full.json` 链是
@@ -226,7 +259,9 @@ sources.lock，改源头就放弃复现契约。曾尝试按 Unihan kMandarin �
 `translator/dictionary` 只支持单个词典，挂扩展词典需经 `translator/packs`
 或独立 schema。
 
-`tools/sources.lock` 钉住五个输入坐标（外加注音生成器的 pypinyin 版本）。`luna_pinyin` 的底本不是上游某个 release，
+`tools/sources.lock` 钉住六个输入坐标（外加注音生成器的 pypinyin 版本）：新增的
+`rime-ice-base` 对应随仓只读 tarball（见上面「rime-ice 只读快照与合并规则」）。
+`luna_pinyin` 的底本不是上游某个 release，
 而是本仓 `64eda4c7` 里那份繁体快照（上游此后加了读音权重、补了日文国字与注音
 索引，本仓又剪过 115 行），所以取底本要读 git 历史，浅克隆取不到。
 

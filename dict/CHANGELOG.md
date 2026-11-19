@@ -2,6 +2,32 @@
 
 词库与 librime 补丁同仓、共用一个 tag —— 版本号只在本仓的 tag 上。
 
+## Unreleased
+
+并入 [iDvel/rime-ice](https://github.com/iDvel/rime-ice) 词库
+（`927e1cf1d3eeb9bf4be85e3f684dba4dd485b6f6`，**GPL-3.0**，多来源汇编），数据规模
+显著变大。
+
+- `tools/sources.lock` 新增 `rime-ice-base`，把该提交的 `cn_dicts/` + `en_dicts/` +
+  `LICENSE` + `rime_ice.dict.yaml` 打成 `tools/upstream/rime-ice-<SHA>.tar.gz` 随仓
+  vendor：生成只读这份快照，`make check` 离线可逐字节复现，不联网取上游。
+- `luna_pinyin.dict.yaml` 并入 `cn_dicts/` 的读音表（`8105`/`41448`/`base`/`ext`/
+  `others`）：转简体、按 (词, 拼音) 去重，本地已有读音优先，约 94 万条。
+- `essay.txt` 并入词频（rime-ice 各表含 `tencent`，取每个词最高权重；`tencent`
+  只带权重，不进主词库）：已在 rime-essay 的词保留本仓权重；新词按相对权重映射到
+  `(0, 1)`，保住新增词之间的顺序但不压过本仓权重 ≥ 1 的词，约 196 万行。
+- `en/` 逐字 vendor rime-ice 的 `en_dicts/`（`en.dict.yaml` / `en_ext.dict.yaml`），
+  不参与中文生成链，进入 `make check` 与 package 闭包，供英文 schema 按需挂载。
+- `thuocl.dict.yaml` 按合并后的主词库/essay 重新生成：95613 个 4 字以上候选里
+  92374 个已覆盖，产物 74938 → 3239 条；`THUOCL_PROBES` 的正侧换成只有导入才
+  提供的 煎饼果子 / 松鼠桂鱼 / 斑点叉尾鮰，负侧 果后 / 内都 不变。已验证抽空
+  导入后三条正探针立刻红。
+- `smoke.py` 随大词库调整两处探针：`是不是` 改用其真实三音节简拼 `sbs`，死读音
+  `身份识别` 守卫独立保留在 `sbsb`；`犍为` 改用补读后的 `qianwei`，断言不减弱。
+- `LICENSE` / `README.md` 同步授权说明：rime-ice 派生部分保持 GPL-3.0，合并产物
+  按 GPL-3.0 分发，不单方面改挂 MIT/LGPL；GPL-3.0 全文已在 `../licenses/`。
+  条数只写约数，最终以产物为准。
+
 ## dict-2026.11.09
 
 新增 THUOCL 长尾补充表（纯数据，无新引擎依赖）。
